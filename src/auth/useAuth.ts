@@ -1,7 +1,14 @@
 import { useApp } from '../providers/AppProvider';
 
-export const useAuth = () => {
-  const { user, session, loading, initialized, signOut, refreshAuth } = useApp();
-  return { user, session, loading, initialized, signOut, refreshAuth };
-};
-
+export function useAuth() {
+  const { user, session, initialized, loading, signOut, isLocalMode, localLogin } = useApp();
+  return {
+    user,
+    session,
+    initialized,
+    loading,
+    signOut,
+    isLocalMode,
+    localLogin,
+  };
+}
