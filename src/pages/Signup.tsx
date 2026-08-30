@@ -16,7 +16,6 @@ export const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already logged in, go to home
   React.useEffect(() => {
     if (initialized && user) {
       navigate('/', { replace: true });
@@ -31,10 +30,8 @@ export const Signup: React.FC = () => {
     const companyId = crypto.randomUUID();
 
     try {
-      // Validar inputs com Zod
       const validated = signupSchema.parse({ companyName, email, password });
 
-      // 1. Criar o usuário no Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: validated.email,
         password: validated.password,
@@ -48,27 +45,26 @@ export const Signup: React.FC = () => {
 
       if (authError) throw authError;
 
-      // 2. Criar o registro da empresa na tabela 'companies'
       const { error: companyError } = await (supabase as any).from('companies').insert({
         id: companyId,
         name: validated.companyName,
       });
 
       if (companyError) {
-        logger.error('Erro ao criar empresa:', companyError);
+        logger.error('Error creating company:', companyError);
       }
 
-      alert('Cadastro realizado com sucesso! Se necessário, confirme seu e-mail.');
+      alert('تم التسجيل بنجاح! إذا لزم الأمر، قم بتأكيد بريدك الإلكتروني.');
       navigate('/');
     } catch (err: unknown) {
       logger.error('Signup error:', err);
       if (err instanceof Error && err.name === 'ZodError') {
         const zodError = err as any;
-        setError(zodError.errors[0]?.message || 'Dados inválidos.');
+        setError(zodError.errors[0]?.message || 'بيانات غير صالحة.');
       } else if (err instanceof Error) {
-        setError(err.message || 'Erro ao realizar cadastro');
+        setError(err.message || 'خطأ في التسجيل');
       } else {
-        setError('Ocorreu um erro inesperado.');
+        setError('حدث خطأ غير متوقع.');
       }
     } finally {
       setLoading(false);
@@ -88,9 +84,9 @@ export const Signup: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--accent-primary)', marginBottom: 'var(--spacing-md)' }}>
           <Car size={48} />
         </div>
-        <h2 style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>Crie sua conta</h2>
+        <h2 style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>إنشاء حساب جديد</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Já tem uma conta? <Link to="/login" style={{ color: 'var(--accent-primary)' }}>Faça login</Link>
+          لديك حساب بالفعل؟ <Link to="/login" style={{ color: 'var(--accent-primary)' }}>تسجيل الدخول</Link>
         </p>
       </div>
 
@@ -117,7 +113,7 @@ export const Signup: React.FC = () => {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Nome da Agência</label>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>اسم المكتب / الوكالة</label>
             <input
               type="text"
               required
@@ -132,12 +128,12 @@ export const Signup: React.FC = () => {
                 outline: 'none',
                 width: '100%'
               }}
-              placeholder="Minha Agência Motors"
+              placeholder="مكتب استيراد السيارات الصينية"
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Email</label>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>البريد الإلكتروني</label>
             <input
               type="email"
               required
@@ -152,12 +148,12 @@ export const Signup: React.FC = () => {
                 outline: 'none',
                 width: '100%'
               }}
-              placeholder="seu@email.com"
+              placeholder="you@email.com"
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Senha</label>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>كلمة المرور</label>
             <input
               type="password"
               required
@@ -191,7 +187,7 @@ export const Signup: React.FC = () => {
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Criando...' : 'Criar Conta'}
+            {loading ? 'جاري الإنشاء...' : 'إنشاء الحساب'}
           </button>
         </form>
       </div>

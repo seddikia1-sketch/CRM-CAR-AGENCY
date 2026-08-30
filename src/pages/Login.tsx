@@ -15,7 +15,6 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already logged in, go to home
   React.useEffect(() => {
     let isMounted = true;
     if (initialized && user && isMounted) {
@@ -31,7 +30,6 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      // Validar input com Zod
       const validated = loginSchema.parse({ email, password });
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -43,17 +41,15 @@ export const Login: React.FC = () => {
         setError(error.message);
         setLoading(false);
       } else if (data.user) {
-        // Successful login
         navigate('/', { replace: true });
       }
     } catch (err: unknown) {
       logger.error('Login error:', err);
-      // Se for erro do Zod, mostrar a primeira mensagem
       if (err instanceof Error && err.name === 'ZodError') {
         const zodError = err as any;
-        setError(zodError.errors[0]?.message || 'Dados inválidos.');
+        setError(zodError.errors[0]?.message || 'بيانات غير صالحة.');
       } else {
-        setError('Ocorreu um erro inesperado ao realizar o login.');
+        setError('حدث خطأ غير متوقع أثناء تسجيل الدخول.');
       }
       setLoading(false);
     }
@@ -72,9 +68,9 @@ export const Login: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--accent-primary)', marginBottom: 'var(--spacing-md)' }}>
           <Car size={48} />
         </div>
-        <h2 style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>Acesse o seu CRM</h2>
+        <h2 style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>دخول إلى نظام الـ CRM</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Ou <Link to="/signup" style={{ color: 'var(--accent-primary)' }}>crie uma nova conta</Link>
+          أو <Link to="/signup" style={{ color: 'var(--accent-primary)' }}>إنشاء حساب جديد</Link>
         </p>
       </div>
 
@@ -101,7 +97,7 @@ export const Login: React.FC = () => {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Email</label>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>البريد الإلكتروني</label>
             <input
               type="email"
               required
@@ -116,12 +112,12 @@ export const Login: React.FC = () => {
                 outline: 'none',
                 width: '100%'
               }}
-              placeholder="seu@email.com"
+              placeholder="you@email.com"
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
-            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Senha</label>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>كلمة المرور</label>
             <input
               type="password"
               required
@@ -155,11 +151,10 @@ export const Login: React.FC = () => {
               transition: 'all 0.2s'
             }}
           >
-            {loading ? 'Entrando...' : 'Entrar no sistema'}
+            {loading ? 'جاري الدخول...' : 'دخول إلى النظام'}
           </button>
         </form>
       </div>
     </div>
   );
 };
-

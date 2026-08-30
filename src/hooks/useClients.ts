@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { FunnelStage } from '../types';
+import { FunnelStage, VehicleCondition } from '../types';
 import type { Client, ClientFormData, ActivityLog, DashboardStats } from '../types';
 import type { Database } from '../types/database.types';
 import { useApp } from '../providers/AppProvider';
@@ -14,6 +14,47 @@ type DealRow = Database['public']['Tables']['deals']['Row'] & {
 };
 type ActivityRow = Database['public']['Tables']['activities']['Row'];
 
+// مساعدة لتخزين الحقول الإضافية داخل الملاحظات مؤقتاً (حتى يتم تحديث قاعدة البيانات)
+function encodeExtraFields(data: Partial<ClientFormData>): string {
+  const extra = {
+    brand: data.brand || '',
+    model: data.model || '',
+    year: data.year || 0,
+    mileage: data.mileage || 0,
+    condition: data.condition || VehicleCondition.NEW,
+    shippingDate: data.shippingDate || '',
+    containerNumber: data.containerNumber || '',
+    customsStatus: data.customsStatus || '',
+    importPrice: data.importPrice || 0,
+  };
+  return JSON.stringify(extra);
+}
+
+function decodeExtraFields(notes: string | null): Partial<Client> {
+  try {
+    if (!notes) return {};
+    // إذا كانت الملاحظات تحتوي على JSON في البداية
+    const match = notes.match(/^\{.*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        brand: parsed.brand || '',
+        model: parsed.model || '',
+        year: parsed.year || 0,
+        mileage: parsed.mileage || 0,
+        condition: parsed.condition || VehicleCondition.NEW,
+        shippingDate: parsed.shippingDate || '',
+        containerNumber: parsed.containerNumber || '',
+        customsStatus: parsed.customsStatus || '',
+        importPrice: parsed.importPrice || 0,
+        notes: notes.replace(match[0], '').trim(),
+      };
+    }
+  } catch {
+    // تجاهل
+  }
+  return { notes: notes || '' };
+}
 
 export function useClients() {
   const { companyId } = useApp();
@@ -23,10 +64,7 @@ export function useClients() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchClients = useCallback(async () => {
-    // VALIDAÇÃO OBRIGATÓRIA: Não executar se o ID for inválido ou temporário
-    if (!companyId) {
-      return;
-    }
+    if (!companyId) return;
 
     try {
       const { data: deals, error } = await supabase
@@ -38,21 +76,33 @@ export function useClients() {
       if (error) throw error;
 
       if (deals) {
-        const mapped: Client[] = (deals as unknown as DealRow[]).map((d) => ({
-          id: d.id,
-          customerId: d.customers?.id || '',
-          name: d.customers?.name || 'Sem nome',
-          phone: d.customers?.phone || '',
-          email: d.customers?.email || '',
-          vehicleInterest: d.vehicle_interest || d.title || '',
-          estimatedValue: d.estimated_value || 0,
-          funnelStage: d.stage as FunnelStage,
-          source: (d.customers?.source as import('../types').LeadSource) || 'other',
-          notes: d.customers?.notes || '',
-          createdAt: d.created_at,
-          updatedAt: d.updated_at,
-          lastContactAt: d.updated_at,
-        }));
+        const mapped: Client[] = (deals as unknown as DealRow[]).map((d) => {
+          const extra = decodeExtraFields(d.customers?.notes || null);
+          return {
+            id: d.id,
+            customerId: d.customers?.id || '',
+            name: d.customers?.name || 'بدون اسم',
+            phone: d.customers?.phone || '',
+            email: d.customers?.email || '',
+            vehicleInterest: d.vehicle_interest || d.title || '',
+            brand: extra.brand || '',
+            model: extra.model || '',
+            year: extra.year || 0,
+            mileage: extra.mileage || 0,
+            condition: extra.condition || VehicleCondition.NEW,
+            shippingDate: extra.shippingDate || '',
+            containerNumber: extra.containerNumber || '',
+            customsStatus: extra.customsStatus || '',
+            importPrice: extra.importPrice || 0,
+            estimatedValue: d.estimated_value || 0,
+            funnelStage: d.stage as FunnelStage,
+            source: (d.customers?.source as import('../types').LeadSource) || 'other',
+            notes: extra.notes || d.customers?.notes || '',
+            createdAt: d.created_at,
+            updatedAt: d.updated_at,
+            lastContactAt: d.updated_at,
+          };
+        });
         setClients(mapped);
       }
     } catch (err: unknown) {
@@ -62,9 +112,7 @@ export function useClients() {
   }, [companyId]);
 
   const fetchActivities = useCallback(async () => {
-    if (!companyId) {
-      return;
-    }
+    if (!companyId) return;
 
     try {
       const { data, error } = await supabase
@@ -82,7 +130,7 @@ export function useClients() {
           return {
             id: a.id,
             clientId: a.deal_id || a.customer_id || '',
-            clientName: details?.clientName || 'Cliente',
+            clientName: details?.clientName || 'عميل',
             action: a.action as any,
             fromStage: details?.fromStage,
             toStage: details?.toStage,
@@ -114,7 +162,6 @@ export function useClients() {
     refresh();
   }, [refresh]);
 
-  // Hooks realtime refatorados
   useRealtime('deals', refresh);
   useRealtime('customers', refresh);
   useRealtime('activities', fetchActivities);
@@ -139,40 +186,41 @@ export function useClients() {
     }
   };
 
-
   const addClient = useCallback(async (data: ClientFormData) => {
     if (!companyId) return null;
 
     try {
-      // 1. Validate Input
       const validated = clientFormSchema.parse(data);
 
-      // 2. Inserir Cliente
+      const extraJson = encodeExtraFields(validated);
+      const notesWithExtra = extraJson + (validated.notes ? ' ' + validated.notes : '');
+
       const { data: customer, error: custErr } = await (supabase as any)
         .from('customers')
         .insert({
           company_id: companyId,
           name: validated.name,
           phone: validated.phone,
-          email: validated.email,
+          email: validated.email || null,
           source: validated.source,
-          notes: validated.notes
+          notes: notesWithExtra
         })
         .select()
         .single();
 
       if (custErr || !customer) throw custErr;
 
-      // 3. Inserir Negócio (Deal)
+      const title = [validated.brand, validated.model, validated.year].filter(Boolean).join(' ') || validated.vehicleInterest || 'فرصة جديدة';
+
       const { data: deal, error: dealErr } = await (supabase as any)
         .from('deals')
         .insert({
           company_id: companyId,
           customer_id: customer.id,
-          title: validated.vehicleInterest || 'Nova Negociação', // Fallback for title
+          title,
           stage: validated.funnelStage,
-          vehicle_interest: validated.vehicleInterest,
-          estimated_value: validated.estimatedValue,
+          vehicle_interest: validated.vehicleInterest || title,
+          estimated_value: validated.estimatedValue || 0,
           status: 'open'
         })
         .select()
@@ -202,14 +250,14 @@ export function useClients() {
     if (!existingClient) return null;
 
     try {
-      // Partial validation for updates
       const validated = clientFormSchema.partial().parse(data);
 
       const dealUpdates: Database['public']['Tables']['deals']['Update'] = {};
       if (validated.funnelStage) dealUpdates.stage = validated.funnelStage;
-      if (validated.vehicleInterest) {
-        dealUpdates.vehicle_interest = validated.vehicleInterest;
-        dealUpdates.title = validated.vehicleInterest;
+      if (validated.vehicleInterest || validated.brand || validated.model) {
+        const title = [validated.brand || existingClient.brand, validated.model || existingClient.model, validated.year || existingClient.year].filter(Boolean).join(' ') || validated.vehicleInterest;
+        dealUpdates.vehicle_interest = validated.vehicleInterest || title;
+        dealUpdates.title = title;
       }
       if (validated.estimatedValue !== undefined) dealUpdates.estimated_value = validated.estimatedValue;
 
@@ -218,15 +266,20 @@ export function useClients() {
         await (supabase as any).from('deals').update(dealUpdates).eq('id', id).eq('company_id', companyId);
       }
 
-      const custUpdates: Database['public']['Tables']['customers']['Update'] = {};
+      const merged = { ...existingClient, ...validated };
+      const extraJson = encodeExtraFields(merged);
+      const notesWithExtra = extraJson + (merged.notes ? ' ' + merged.notes : '');
+
+      const custUpdates: any = {
+        updated_at: new Date().toISOString(),
+        notes: notesWithExtra,
+      };
       if (validated.name) custUpdates.name = validated.name;
       if (validated.phone) custUpdates.phone = validated.phone;
       if (validated.email !== undefined) custUpdates.email = validated.email;
-      if (validated.notes !== undefined) custUpdates.notes = validated.notes;
       if (validated.source) custUpdates.source = validated.source;
 
-      if (Object.keys(custUpdates).length > 0 && existingClient.customerId) {
-        custUpdates.updated_at = new Date().toISOString();
+      if (existingClient.customerId) {
         await (supabase as any).from('customers').update(custUpdates).eq('id', existingClient.customerId).eq('company_id', companyId);
       }
 
@@ -240,7 +293,7 @@ export function useClients() {
         });
       }
 
-      setClients(prev => prev.map(c => c.id === id ? { ...c, ...validated } : c));
+      setClients(prev => prev.map(c => c.id === id ? { ...c, ...validated } as Client : c));
     } catch (err: unknown) {
       logger.error('Error updating client:', err);
     }
@@ -327,8 +380,10 @@ export function useClients() {
           (c) =>
             c.name.toLowerCase().includes(q) ||
             c.phone.includes(q) ||
-            c.vehicleInterest.toLowerCase().includes(q) ||
-            c.email.toLowerCase().includes(q)
+            (c.vehicleInterest || '').toLowerCase().includes(q) ||
+            (c.brand || '').toLowerCase().includes(q) ||
+            (c.model || '').toLowerCase().includes(q) ||
+            (c.email || '').toLowerCase().includes(q)
         );
       }
       if (stageFilter) result = result.filter((c) => c.funnelStage === stageFilter);
