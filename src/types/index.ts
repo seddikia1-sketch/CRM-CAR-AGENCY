@@ -129,8 +129,6 @@ export interface VehicleFormData {
   notes: string;
 }
 
-// ========== قطع الغيار وخدمات ما بعد البيع ==========
-
 export const PartCategory = {
   ENGINE: 'engine',
   BRAKES: 'brakes',
@@ -149,7 +147,7 @@ export interface SparePart {
   id: string;
   name: string;
   partNumber: string;
-  brand: string; // ماركة السيارة المتوافقة
+  brand: string;
   category: PartCategory;
   quantity: number;
   costPrice: number;
@@ -183,6 +181,10 @@ export interface PartSale {
   profit: number;
   clientId?: string;
   clientName?: string;
+  // ربط بسيارة معينة
+  vehicleId?: string;
+  vehicleVin?: string;
+  vehicleLabel?: string; // مثال: Chery Tiggo 8 2024
   notes: string;
   soldAt: string;
 }

@@ -4,6 +4,7 @@ import { Button } from '../UI/Button';
 import { Input } from '../UI/Input';
 import type { SparePart } from '../../types';
 import type { Client } from '../../types';
+import type { Vehicle } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
 interface SellPartModalProps {
@@ -11,7 +12,17 @@ interface SellPartModalProps {
   onClose: () => void;
   part: SparePart | null;
   clients: Client[];
-  onConfirm: (quantity: number, unitPrice: number, clientId?: string, clientName?: string, notes?: string) => void;
+  vehicles: Vehicle[];
+  onConfirm: (
+    quantity: number,
+    unitPrice: number,
+    clientId?: string,
+    clientName?: string,
+    notes?: string,
+    vehicleId?: string,
+    vehicleVin?: string,
+    vehicleLabel?: string
+  ) => void;
 }
 
 export const SellPartModal: React.FC<SellPartModalProps> = ({
@@ -19,11 +30,14 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
   onClose,
   part,
   clients,
+  vehicles,
   onConfirm,
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   const [clientId, setClientId] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
+  const [manualVin, setManualVin] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -31,6 +45,8 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
       setQuantity(1);
       setUnitPrice(part.sellingPrice || 0);
       setClientId('');
+      setVehicleId('');
+      setManualVin('');
       setNotes('');
     }
   }, [part]);
@@ -40,19 +56,40 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
   const total = quantity * unitPrice;
   const profit = total - (part.costPrice || 0) * quantity;
   const selectedClient = clients.find((c) => c.id === clientId);
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
 
   const handleConfirm = () => {
     if (quantity < 1 || quantity > part.quantity) return;
-    onConfirm(quantity, unitPrice, selectedClient?.id, selectedClient?.name, notes);
+
+    const vin = selectedVehicle?.vin || manualVin || undefined;
+    const label = selectedVehicle
+      ? `${selectedVehicle.brand} ${selectedVehicle.model} ${selectedVehicle.year}`
+      : manualVin
+      ? `VIN: ${manualVin}`
+      : undefined;
+
+    onConfirm(
+      quantity,
+      unitPrice,
+      selectedClient?.id,
+      selectedClient?.name,
+      notes,
+      selectedVehicle?.id,
+      vin,
+      label
+    );
     onClose();
   };
+
+  // سيارات لها VIN فقط
+  const vehiclesWithVin = vehicles.filter((v) => v.vin && v.vin.trim());
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="بيع قطعة غيار"
-      maxWidth="480px"
+      title="بيع قطعة غيار (خدمة ما بعد البيع)"
+      maxWidth="520px"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>إلغاء</Button>
@@ -99,11 +136,47 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
           </select>
         </div>
 
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            ربط بسيارة (VIN)
+          </p>
+
+          <div className="input-wrapper">
+            <label className="input-label">اختر من المخزون</label>
+            <select
+              className="input-field"
+              value={vehicleId}
+              onChange={(e) => {
+                setVehicleId(e.target.value);
+                if (e.target.value) setManualVin('');
+              }}
+            >
+              <option value="">-- بدون سيارة من المخزون --</option>
+              {vehiclesWithVin.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.brand} {v.model} {v.year} — VIN: {v.vin}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {!vehicleId && (
+            <div style={{ marginTop: '10px' }}>
+              <Input
+                label="أو أدخل رقم الهيكل (VIN) يدوياً"
+                value={manualVin}
+                onChange={(e) => setManualVin(e.target.value)}
+                placeholder="LSGXXXXXXXXXXXX"
+              />
+            </div>
+          )}
+        </div>
+
         <Input
           label="ملاحظات"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="مثال: صيانة دورية"
+          placeholder="مثال: صيانة دورية / تغيير فلاتر"
         />
 
         <div style={{

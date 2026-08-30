@@ -6,15 +6,16 @@ import { PartModal } from '../components/SpareParts/PartModal';
 import { SellPartModal } from '../components/SpareParts/SellPartModal';
 import { useSpareParts } from '../hooks/useSpareParts';
 import { useClients } from '../hooks/useClients';
+import { useInventory } from '../hooks/useInventory';
 import type { SparePart, SparePartFormData, PartCategory } from '../types';
 import { PART_CATEGORIES } from '../utils/constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { Badge } from '../components/UI/Badge';
 import '../components/Clients/ClientTable.css';
 
 export const SpareParts: React.FC = () => {
   const { parts, sales, addPart, updatePart, deletePart, sellPart, searchParts, lowStockParts, stats } = useSpareParts();
   const { clients } = useClients();
+  const { vehicles } = useInventory();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<PartCategory | ''>('');
@@ -35,9 +36,18 @@ export const SpareParts: React.FC = () => {
     setEditingPart(undefined);
   };
 
-  const handleSellConfirm = (qty: number, price: number, clientId?: string, clientName?: string, notes?: string) => {
+  const handleSellConfirm = (
+    qty: number,
+    price: number,
+    clientId?: string,
+    clientName?: string,
+    notes?: string,
+    vehicleId?: string,
+    vehicleVin?: string,
+    vehicleLabel?: string
+  ) => {
     if (sellPartData) {
-      sellPart(sellPartData.id, qty, price, clientId, clientName, notes);
+      sellPart(sellPartData.id, qty, price, clientId, clientName, notes, vehicleId, vehicleVin, vehicleLabel);
     }
   };
 
@@ -54,14 +64,13 @@ export const SpareParts: React.FC = () => {
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0 }}>
         <div>
           <h1 className="page-title">قطع الغيار وخدمات ما بعد البيع</h1>
-          <p className="page-description">إدارة مخزون القطع وبيعها وربطها بالعملاء.</p>
+          <p className="page-description">إدارة مخزون القطع وبيعها وربطها بالعملاء والسيارات (VIN).</p>
         </div>
         <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
           إضافة قطعة
         </Button>
       </div>
 
-      {/* إحصائيات */}
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
         <div className="glass-card" style={{ padding: '12px 18px', flex: '1 1 130px' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>أنواع القطع</div>
@@ -102,7 +111,6 @@ export const SpareParts: React.FC = () => {
         </div>
       )}
 
-      {/* تبويبات */}
       <div className="flex gap-sm">
         <Button variant={activeTab === 'stock' ? 'primary' : 'ghost'} onClick={() => setActiveTab('stock')}>
           المخزون
@@ -220,6 +228,7 @@ export const SpareParts: React.FC = () => {
                     <th>الإجمالي</th>
                     <th>الربح</th>
                     <th>العميل</th>
+                    <th>السيارة (VIN)</th>
                     <th>التاريخ</th>
                   </tr>
                 </thead>
@@ -231,6 +240,13 @@ export const SpareParts: React.FC = () => {
                       <td>{formatCurrency(s.totalPrice)}</td>
                       <td style={{ color: '#22c55e', fontWeight: 600 }}>{formatCurrency(s.profit)}</td>
                       <td>{s.clientName || '-'}</td>
+                      <td>
+                        {s.vehicleLabel || s.vehicleVin ? (
+                          <span title={s.vehicleVin}>
+                            {s.vehicleLabel || s.vehicleVin}
+                          </span>
+                        ) : '-'}
+                      </td>
                       <td>{formatDate(s.soldAt)}</td>
                     </tr>
                   ))}
@@ -254,6 +270,7 @@ export const SpareParts: React.FC = () => {
         onClose={() => setSellPartData(null)}
         part={sellPartData}
         clients={clients}
+        vehicles={vehicles}
         onConfirm={handleSellConfirm}
       />
     </div>

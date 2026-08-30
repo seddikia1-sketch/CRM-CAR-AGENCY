@@ -1,10 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { SparePart, SparePartFormData, PartSale, PartCategory } from '../types';
+import type { SparePart, SparePartFormData, PartSale, PartCategory, MonthlyProfit } from '../types';
 import { storage, STORAGE_KEYS } from '../services/storage';
 
 function generateId() {
   return crypto.randomUUID();
 }
+
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+];
 
 export function useSpareParts() {
   const [parts, setParts] = useState<SparePart[]>([]);
@@ -54,14 +59,16 @@ export function useSpareParts() {
     saveParts(parts.filter((p) => p.id !== id));
   }, [parts, saveParts]);
 
-  /** بيع قطعة غيار وربطها بعميل (اختياري) */
   const sellPart = useCallback((
     partId: string,
     quantity: number,
     unitPrice: number,
     clientId?: string,
     clientName?: string,
-    notes?: string
+    notes?: string,
+    vehicleId?: string,
+    vehicleVin?: string,
+    vehicleLabel?: string
   ) => {
     const part = parts.find((p) => p.id === partId);
     if (!part || part.quantity < quantity) return null;
@@ -81,11 +88,13 @@ export function useSpareParts() {
       profit,
       clientId,
       clientName,
+      vehicleId,
+      vehicleVin,
+      vehicleLabel,
       notes: notes || '',
       soldAt: new Date().toISOString(),
     };
 
-    // خصم الكمية من المخزون
     const updatedParts = parts.map((p) =>
       p.id === partId
         ? { ...p, quantity: p.quantity - quantity, updatedAt: new Date().toISOString() }
@@ -111,6 +120,36 @@ export function useSpareParts() {
     return result;
   }, [parts]);
 
+  /** تقارير أرباح قطع الغيار الشهرية */
+  const getMonthlyPartsProfits = useCallback((): MonthlyProfit[] => {
+    const map = new Map<string, MonthlyProfit>();
+
+    sales.forEach((s) => {
+      const d = new Date(s.soldAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${ARABIC_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          month: key,
+          label,
+          salesCount: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+          profit: 0,
+        });
+      }
+
+      const entry = map.get(key)!;
+      entry.salesCount += 1;
+      entry.totalRevenue += s.totalPrice;
+      entry.totalCost += s.costTotal;
+      entry.profit = entry.totalRevenue - entry.totalCost;
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.month.localeCompare(a.month));
+  }, [sales]);
+
   const lowStockParts = parts.filter((p) => p.quantity <= p.minStock);
 
   const stats = {
@@ -133,6 +172,7 @@ export function useSpareParts() {
     sellPart,
     searchParts,
     lowStockParts,
+    getMonthlyPartsProfits,
     stats,
     refresh: load,
   };
