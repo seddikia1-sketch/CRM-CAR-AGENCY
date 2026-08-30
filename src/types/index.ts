@@ -32,6 +32,16 @@ export const VehicleCondition = {
 
 export type VehicleCondition = typeof VehicleCondition[keyof typeof VehicleCondition];
 
+export const InventoryStatus = {
+  AVAILABLE: 'available',
+  RESERVED: 'reserved',
+  SOLD: 'sold',
+  IN_TRANSIT: 'in_transit',
+  CUSTOMS: 'customs',
+} as const;
+
+export type InventoryStatus = typeof InventoryStatus[keyof typeof InventoryStatus];
+
 export interface Client {
   id: string;
   customerId: string;
@@ -48,7 +58,7 @@ export interface Client {
   containerNumber: string;
   customsStatus: string;
   importPrice: number;
-  estimatedValue: number; // سعر البيع المتوقع
+  estimatedValue: number;
   funnelStage: FunnelStage;
   source: LeadSource;
   notes: string;
@@ -74,6 +84,45 @@ export interface ClientFormData {
   estimatedValue: number;
   funnelStage: FunnelStage;
   source: LeadSource;
+  notes: string;
+}
+
+export interface Vehicle {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  condition: VehicleCondition;
+  color: string;
+  vin: string;
+  containerNumber: string;
+  shippingDate: string;
+  arrivalDate: string;
+  customsStatus: string;
+  importPrice: number;
+  sellingPrice: number;
+  status: InventoryStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VehicleFormData {
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  condition: VehicleCondition;
+  color: string;
+  vin: string;
+  containerNumber: string;
+  shippingDate: string;
+  arrivalDate: string;
+  customsStatus: string;
+  importPrice: number;
+  sellingPrice: number;
+  status: InventoryStatus;
   notes: string;
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Filter, Settings, Car, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Filter, Settings, Car, LogOut, Package } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
 
@@ -11,6 +11,7 @@ export const Sidebar: React.FC = () => {
     { path: '/', label: 'لوحة التحكم', icon: <LayoutDashboard size={20} /> },
     { path: '/clients', label: 'العملاء', icon: <Users size={20} /> },
     { path: '/pipeline', label: 'مراحل المبيعات', icon: <Filter size={20} /> },
+    { path: '/inventory', label: 'المخزون', icon: <Package size={20} /> },
     { path: '/settings', label: 'الإعدادات', icon: <Settings size={20} /> },
   ];
 

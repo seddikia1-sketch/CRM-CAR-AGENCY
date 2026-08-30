@@ -2,7 +2,7 @@
 // CRM مكاتب السيارات الصينية — Constants
 // ========================================
 
-import { FunnelStage, LeadSource, VehicleCondition } from '../types';
+import { FunnelStage, LeadSource, VehicleCondition, InventoryStatus } from '../types';
 import type { FunnelStageInfo, LeadSourceInfo } from '../types';
 
 export const FUNNEL_STAGES: FunnelStageInfo[] = [
@@ -65,6 +65,14 @@ export const VEHICLE_CONDITIONS = [
   { key: VehicleCondition.UNDER_3_YEARS, label: 'أقل من 3 سنوات', emoji: '📅' },
 ];
 
+export const INVENTORY_STATUSES = [
+  { key: InventoryStatus.AVAILABLE, label: 'متاحة', emoji: '✅', color: '#22c55e' },
+  { key: InventoryStatus.RESERVED, label: 'محجوزة', emoji: '🔒', color: '#f0932b' },
+  { key: InventoryStatus.SOLD, label: 'مباعة', emoji: '💰', color: '#6c9fff' },
+  { key: InventoryStatus.IN_TRANSIT, label: 'في الطريق', emoji: '🚢', color: '#a855f7' },
+  { key: InventoryStatus.CUSTOMS, label: 'تحت الجمرك', emoji: '🛃', color: '#ef4444' },
+];
+
 export const STAGE_MAP: Record<FunnelStage, FunnelStageInfo> = Object.fromEntries(
   FUNNEL_STAGES.map((s) => [s.key, s])
 ) as Record<FunnelStage, FunnelStageInfo>;
@@ -75,7 +83,6 @@ export const SOURCE_MAP: Record<LeadSource, LeadSourceInfo> = Object.fromEntries
 
 export const DEFAULT_FOLLOW_UP_DAYS = 3;
 
-// أشهر الماركات الصينية الشائعة في الجزائر
 export const CHINESE_BRANDS = [
   'Chery',
   'Geely',
