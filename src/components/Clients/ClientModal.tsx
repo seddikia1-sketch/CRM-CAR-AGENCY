@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
 import { Input } from '../UI/Input';
-import { FunnelStage, LeadSource } from '../../types';
+import { FunnelStage, LeadSource, VehicleCondition } from '../../types';
 import type { ClientFormData } from '../../types';
-import { FUNNEL_STAGES, LEAD_SOURCES } from '../../utils/constants';
+import { FUNNEL_STAGES, LEAD_SOURCES, VEHICLE_CONDITIONS, CHINESE_BRANDS } from '../../utils/constants';
 import { phoneMask } from '../../utils/formatters';
 
 interface ClientModalProps {
@@ -20,6 +20,15 @@ const defaultData: ClientFormData = {
   phone: '',
   email: '',
   vehicleInterest: '',
+  brand: '',
+  model: '',
+  year: new Date().getFullYear(),
+  mileage: 0,
+  condition: VehicleCondition.NEW,
+  shippingDate: '',
+  containerNumber: '',
+  customsStatus: '',
+  importPrice: 0,
   estimatedValue: 0,
   funnelStage: FunnelStage.FIRST_CONTACT,
   source: LeadSource.WHATSAPP,
@@ -31,7 +40,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   onClose,
   onSave,
   initialData,
-  title = 'Novo Cliente',
+  title = 'عميل جديد',
 }) => {
   const [formData, setFormData] = useState<ClientFormData>(defaultData);
 
@@ -46,7 +55,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
     if (name === 'phone') {
       setFormData((prev) => ({ ...prev, [name]: phoneMask(value) }));
-    } else if (name === 'estimatedValue') {
+    } else if (['estimatedValue', 'importPrice', 'year', 'mileage'].includes(name)) {
       setFormData((prev) => ({ ...prev, [name]: Number(value) || 0 }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -64,64 +73,168 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      maxWidth="600px"
+      maxWidth="720px"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={handleSubmit}>Salvar</Button>
+          <Button variant="ghost" onClick={onClose}>إلغاء</Button>
+          <Button variant="primary" onClick={handleSubmit}>حفظ</Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="flex-col gap-md" style={{ display: 'flex' }}>
+        {/* بيانات العميل */}
         <div className="flex gap-md">
           <Input
-            label="Nome Completo *"
+            label="الاسم الكامل *"
             name="name"
             value={formData.name}
             onChange={handleChange}
             required
-            placeholder="Ex: João Silva"
+            placeholder="مثال: أحمد بن علي"
           />
           <Input
-            label="WhatsApp / Telefone *"
+            label="واتساب / الهاتف *"
             name="phone"
             value={formData.phone}
             onChange={handleChange}
             required
-            placeholder="(11) 99999-9999"
+            placeholder="0555 12 34 56"
           />
         </div>
 
         <div className="flex gap-md">
           <Input
-            label="Email"
+            label="البريد الإلكتروني"
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
-            placeholder="joao@email.com"
+            placeholder="ahmed@email.com"
           />
           <Input
-            label="Veículo de Interesse"
+            label="السيارة المطلوبة (ملخص)"
             name="vehicleInterest"
             value={formData.vehicleInterest}
             onChange={handleChange}
-            placeholder="Ex: Honda Civic 2022"
+            placeholder="مثال: Chery Tiggo 8 Pro 2024"
           />
         </div>
 
-        <div className="flex gap-md">
-          <Input
-            label="Valor Estimado (R$)"
-            name="estimatedValue"
-            type="number"
-            value={formData.estimatedValue || ''}
-            onChange={handleChange}
-            placeholder="120.000,00"
-          />
+        {/* بيانات السيارة الصينية */}
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
+          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>بيانات السيارة الصينية</p>
+          
+          <div className="flex gap-md">
+            <div className="input-wrapper" style={{ flex: 1 }}>
+              <label className="input-label">الماركة</label>
+              <select
+                name="brand"
+                className="input-field"
+                value={formData.brand}
+                onChange={handleChange}
+              >
+                <option value="">اختر الماركة</option>
+                {CHINESE_BRANDS.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+            <Input
+              label="الموديل"
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              placeholder="Tiggo 8 Pro"
+            />
+          </div>
 
+          <div className="flex gap-md" style={{ marginTop: '12px' }}>
+            <Input
+              label="سنة الصنع"
+              name="year"
+              type="number"
+              value={formData.year || ''}
+              onChange={handleChange}
+              placeholder="2024"
+            />
+            <Input
+              label="الكيلومترات"
+              name="mileage"
+              type="number"
+              value={formData.mileage || ''}
+              onChange={handleChange}
+              placeholder="0"
+            />
+            <div className="input-wrapper" style={{ flex: 1 }}>
+              <label className="input-label">الحالة</label>
+              <select
+                name="condition"
+                className="input-field"
+                value={formData.condition}
+                onChange={handleChange}
+              >
+                {VEHICLE_CONDITIONS.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.emoji} {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* بيانات الاستيراد */}
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
+          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>بيانات الاستيراد والشحن</p>
+          
+          <div className="flex gap-md">
+            <Input
+              label="تاريخ الشحن المتوقع"
+              name="shippingDate"
+              type="date"
+              value={formData.shippingDate}
+              onChange={handleChange}
+            />
+            <Input
+              label="رقم الحاوية"
+              name="containerNumber"
+              value={formData.containerNumber}
+              onChange={handleChange}
+              placeholder="MSCU1234567"
+            />
+          </div>
+
+          <div className="flex gap-md" style={{ marginTop: '12px' }}>
+            <Input
+              label="حالة الجمرك"
+              name="customsStatus"
+              value={formData.customsStatus}
+              onChange={handleChange}
+              placeholder="في الطريق / تحت التخليص / تم الإفراج"
+            />
+            <Input
+              label="سعر الاستيراد (دج)"
+              name="importPrice"
+              type="number"
+              value={formData.importPrice || ''}
+              onChange={handleChange}
+              placeholder="0"
+            />
+            <Input
+              label="سعر البيع المتوقع (دج)"
+              name="estimatedValue"
+              type="number"
+              value={formData.estimatedValue || ''}
+              onChange={handleChange}
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        {/* مرحلة البيع والمصدر */}
+        <div className="flex gap-md" style={{ marginTop: '8px' }}>
           <div className="input-wrapper" style={{ flex: 1 }}>
-            <label className="input-label">Etapa do Funil</label>
+            <label className="input-label">مرحلة البيع</label>
             <select
               name="funnelStage"
               className="input-field"
@@ -135,33 +248,33 @@ export const ClientModal: React.FC<ClientModalProps> = ({
               ))}
             </select>
           </div>
+
+          <div className="input-wrapper" style={{ flex: 1 }}>
+            <label className="input-label">مصدر العميل</label>
+            <select
+              name="source"
+              className="input-field"
+              value={formData.source}
+              onChange={handleChange}
+            >
+              {LEAD_SOURCES.map((source) => (
+                <option key={source.key} value={source.key}>
+                  {source.emoji} {source.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="input-wrapper">
-          <label className="input-label">Origem do Lead</label>
-          <select
-            name="source"
-            className="input-field"
-            value={formData.source}
-            onChange={handleChange}
-          >
-            {LEAD_SOURCES.map((source) => (
-              <option key={source.key} value={source.key}>
-                {source.emoji} {source.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="input-wrapper">
-          <label className="input-label">Notas e Observações</label>
+          <label className="input-label">ملاحظات</label>
           <textarea
             name="notes"
             className="input-field"
-            style={{ minHeight: '100px', resize: 'vertical' }}
+            style={{ minHeight: '90px', resize: 'vertical' }}
             value={formData.notes}
             onChange={handleChange}
-            placeholder="Detalhes da negociação, preferências do cliente, etc."
+            placeholder="تفاصيل إضافية عن العميل أو السيارة أو التفاوض..."
           />
         </div>
       </form>

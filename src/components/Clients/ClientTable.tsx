@@ -27,7 +27,6 @@ export const ClientTable: React.FC<ClientTableProps> = ({
     setActiveMenu(activeMenu === id ? null : id);
   };
 
-  // Close menu when clicking outside
   React.useEffect(() => {
     const closeMenu = () => setActiveMenu(null);
     document.addEventListener('click', closeMenu);
@@ -37,7 +36,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   if (clients.length === 0) {
     return (
       <div className="empty-state">
-        <p>Nenhum cliente encontrado.</p>
+        <p>لا يوجد عملاء حالياً.</p>
       </div>
     );
   }
@@ -47,19 +46,22 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       <table className="client-table">
         <thead>
           <tr>
-            <th>Nome / Contato</th>
-            <th>Veículo de Interesse</th>
-            <th>Valor</th>
-            <th>Etapa</th>
-            <th>Origem</th>
-            <th>Último Contato</th>
-            <th className="action-column">Ações</th>
+            <th>الاسم / الهاتف</th>
+            <th>السيارة</th>
+            <th>الحالة</th>
+            <th>سعر البيع</th>
+            <th>المرحلة</th>
+            <th>المصدر</th>
+            <th>آخر تواصل</th>
+            <th className="action-column">إجراءات</th>
           </tr>
         </thead>
         <tbody>
           {clients.map((client) => {
             const stage = STAGE_MAP[client.funnelStage];
             const source = SOURCE_MAP[client.source];
+
+            const carInfo = [client.brand, client.model, client.year].filter(Boolean).join(' ') || client.vehicleInterest || '-';
 
             return (
               <tr key={client.id}>
@@ -69,16 +71,26 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     <p className="client-phone">{client.phone}</p>
                   </div>
                 </td>
-                <td>{client.vehicleInterest || '-'}</td>
+                <td>
+                  <div>
+                    <div>{carInfo}</div>
+                    {client.mileage > 0 && (
+                      <small style={{ color: 'var(--text-secondary)' }}>{client.mileage.toLocaleString()} كم</small>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  {client.condition === 'new' ? '🆕 جديدة' : client.condition === 'under_3_years' ? '📅 أقل من 3 سنوات' : '-'}
+                </td>
                 <td>{client.estimatedValue ? formatCurrency(client.estimatedValue) : '-'}</td>
                 <td>
-                  <Badge color={stage.color} icon={stage.emoji}>
-                    {stage.label}
+                  <Badge color={stage?.color || '#999'} icon={stage?.emoji}>
+                    {stage?.label || client.funnelStage}
                   </Badge>
                 </td>
                 <td>
-                  <span className="source-label" title={source.label}>
-                    {source.emoji} {source.label}
+                  <span className="source-label" title={source?.label}>
+                    {source?.emoji} {source?.label}
                   </span>
                 </td>
                 <td>{formatDate(client.lastContactAt)}</td>
@@ -89,7 +101,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="icon-btn whatsapp-btn"
-                      title="Chamar no WhatsApp"
+                      title="مراسلة على واتساب"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MessageCircle size={18} />
@@ -105,10 +117,10 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     {activeMenu === client.id && (
                       <div className="action-menu glass-card" onClick={(e) => e.stopPropagation()}>
                         <button className="menu-item" onClick={() => { onEdit(client); setActiveMenu(null); }}>
-                          <Edit size={16} /> Editar
+                          <Edit size={16} /> تعديل
                         </button>
                         <button className="menu-item danger" onClick={() => { onDelete(client.id); setActiveMenu(null); }}>
-                          <Trash2 size={16} /> Excluir
+                          <Trash2 size={16} /> حذف
                         </button>
                       </div>
                     )}

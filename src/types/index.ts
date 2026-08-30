@@ -1,5 +1,5 @@
 // ========================================
-// CRM Agências de Carros — Type Definitions
+// CRM مكاتب السيارات الصينية — Type Definitions
 // ========================================
 
 export const FunnelStage = {
@@ -25,6 +25,13 @@ export const LeadSource = {
 
 export type LeadSource = typeof LeadSource[keyof typeof LeadSource];
 
+export const VehicleCondition = {
+  NEW: 'new',
+  UNDER_3_YEARS: 'under_3_years',
+} as const;
+
+export type VehicleCondition = typeof VehicleCondition[keyof typeof VehicleCondition];
+
 export interface Client {
   id: string;
   customerId: string;
@@ -32,7 +39,16 @@ export interface Client {
   phone: string;
   email: string;
   vehicleInterest: string;
-  estimatedValue: number;
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  condition: VehicleCondition;
+  shippingDate: string;
+  containerNumber: string;
+  customsStatus: string;
+  importPrice: number;
+  estimatedValue: number; // سعر البيع المتوقع
   funnelStage: FunnelStage;
   source: LeadSource;
   notes: string;
@@ -46,6 +62,15 @@ export interface ClientFormData {
   phone: string;
   email: string;
   vehicleInterest: string;
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  condition: VehicleCondition;
+  shippingDate: string;
+  containerNumber: string;
+  customsStatus: string;
+  importPrice: number;
   estimatedValue: number;
   funnelStage: FunnelStage;
   source: LeadSource;

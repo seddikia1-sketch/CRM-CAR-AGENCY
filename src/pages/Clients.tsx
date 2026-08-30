@@ -36,7 +36,6 @@ export const Clients: React.FC = () => {
     handleCloseModal();
   };
 
-  // derived state for filtered clients
   const filteredClients = React.useMemo(() => {
     return searchClients(searchQuery, stageFilter as FunnelStage || undefined);
   }, [searchClients, searchQuery, stageFilter, clients]);
@@ -45,11 +44,11 @@ export const Clients: React.FC = () => {
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0 }}>
         <div>
-          <h1 className="page-title">Clientes</h1>
-          <p className="page-description">Gerencie todos os seus contatos em um só lugar.</p>
+          <h1 className="page-title">العملاء</h1>
+          <p className="page-description">إدارة جميع جهات الاتصال والفرص في مكان واحد.</p>
         </div>
         <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
-          Novo Cliente
+          عميل جديد
         </Button>
       </div>
 
@@ -57,7 +56,7 @@ export const Clients: React.FC = () => {
         <div className="flex gap-md justify-between items-center" style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ width: '300px' }}>
             <Input
-              placeholder="Buscar por nome, telefone..."
+              placeholder="بحث بالاسم أو الهاتف..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search size={16} />}
@@ -72,7 +71,7 @@ export const Clients: React.FC = () => {
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value as FunnelStage | '')}
             >
-              <option value="">Todas as Etapas</option>
+              <option value="">كل المراحل</option>
               {FUNNEL_STAGES.map((stage) => (
                 <option key={stage.key} value={stage.key}>
                   {stage.label}
@@ -86,7 +85,7 @@ export const Clients: React.FC = () => {
           clients={filteredClients}
           onEdit={handleOpenModal}
           onDelete={(id) => {
-            if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
+            if (window.confirm('هل أنت متأكد من حذف هذا العميل؟')) {
               deleteClient(id);
             }
           }}
@@ -99,7 +98,7 @@ export const Clients: React.FC = () => {
         onClose={handleCloseModal}
         onSave={handleSaveClient}
         initialData={editingClient}
-        title={editingClient ? 'Editar Cliente' : 'Novo Cliente'}
+        title={editingClient ? 'تعديل العميل' : 'عميل جديد'}
       />
     </div>
   );
