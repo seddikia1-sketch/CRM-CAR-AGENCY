@@ -1,10 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Vehicle, VehicleFormData, InventoryStatus } from '../types';
+import type { Vehicle, VehicleFormData, InventoryStatus, MonthlyProfit } from '../types';
 import { storage, STORAGE_KEYS } from '../services/storage';
 
 function generateId() {
   return crypto.randomUUID();
 }
+
+const ARABIC_MONTHS = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+];
 
 export function useInventory() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -38,7 +43,7 @@ export function useInventory() {
     return vehicle;
   }, [vehicles, save]);
 
-  const updateVehicle = useCallback((id: string, data: Partial<VehicleFormData>) => {
+  const updateVehicle = useCallback((id: string, data: Partial<VehicleFormData & { soldToClientId?: string; soldToClientName?: string; soldAt?: string }>) => {
     const updated = vehicles.map((v) =>
       v.id === id ? { ...v, ...data, updatedAt: new Date().toISOString() } : v
     );
@@ -47,6 +52,29 @@ export function useInventory() {
 
   const deleteVehicle = useCallback((id: string) => {
     const updated = vehicles.filter((v) => v.id !== id);
+    save(updated);
+  }, [vehicles, save]);
+
+  /** ربط السيارة بعميل وتسجيلها كمباعة */
+  const sellVehicle = useCallback((
+    vehicleId: string,
+    clientId: string,
+    clientName: string,
+    finalPrice?: number
+  ) => {
+    const now = new Date().toISOString();
+    const updated = vehicles.map((v) => {
+      if (v.id !== vehicleId) return v;
+      return {
+        ...v,
+        status: 'sold' as InventoryStatus,
+        sellingPrice: finalPrice ?? v.sellingPrice,
+        soldToClientId: clientId,
+        soldToClientName: clientName,
+        soldAt: now,
+        updatedAt: now,
+      };
+    });
     save(updated);
   }, [vehicles, save]);
 
@@ -65,11 +93,43 @@ export function useInventory() {
           v.model.toLowerCase().includes(q) ||
           v.vin.toLowerCase().includes(q) ||
           v.containerNumber.toLowerCase().includes(q) ||
-          v.color.toLowerCase().includes(q)
+          v.color.toLowerCase().includes(q) ||
+          (v.soldToClientName || '').toLowerCase().includes(q)
       );
     }
     if (statusFilter) result = result.filter((v) => v.status === statusFilter);
     return result;
+  }, [vehicles]);
+
+  /** تقارير الأرباح الشهرية */
+  const getMonthlyProfits = useCallback((): MonthlyProfit[] => {
+    const sold = vehicles.filter((v) => v.status === 'sold' && v.soldAt);
+    const map = new Map<string, MonthlyProfit>();
+
+    sold.forEach((v) => {
+      const d = new Date(v.soldAt!);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${ARABIC_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          month: key,
+          label,
+          salesCount: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+          profit: 0,
+        });
+      }
+
+      const entry = map.get(key)!;
+      entry.salesCount += 1;
+      entry.totalRevenue += v.sellingPrice || 0;
+      entry.totalCost += v.importPrice || 0;
+      entry.profit = entry.totalRevenue - entry.totalCost;
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.month.localeCompare(a.month));
   }, [vehicles]);
 
   const stats = {
@@ -82,6 +142,9 @@ export function useInventory() {
     totalValue: vehicles
       .filter((v) => v.status !== 'sold')
       .reduce((sum, v) => sum + (v.sellingPrice || 0), 0),
+    totalProfit: vehicles
+      .filter((v) => v.status === 'sold')
+      .reduce((sum, v) => sum + ((v.sellingPrice || 0) - (v.importPrice || 0)), 0),
   };
 
   return {
@@ -90,8 +153,10 @@ export function useInventory() {
     addVehicle,
     updateVehicle,
     deleteVehicle,
+    sellVehicle,
     getByStatus,
     searchVehicles,
+    getMonthlyProfits,
     stats,
     refresh: load,
   };

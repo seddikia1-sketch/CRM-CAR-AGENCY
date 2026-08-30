@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
 import { Pipeline } from './pages/Pipeline';
 import { Inventory } from './pages/Inventory';
+import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
@@ -19,22 +20,20 @@ function App() {
       <AppProvider>
         <HashRouter>
           <Routes>
-            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
-            {/* Private Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="clients" element={<Clients />} />
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="inventory" element={<Inventory />} />
+                <Route path="reports" element={<Reports />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
             </Route>
 
-            {/* Global Fallback */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </HashRouter>

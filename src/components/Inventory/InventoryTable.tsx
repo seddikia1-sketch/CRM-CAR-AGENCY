@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, UserCheck } from 'lucide-react';
 import type { Vehicle } from '../../types';
 import { INVENTORY_STATUSES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/formatters';
@@ -10,12 +10,14 @@ interface InventoryTableProps {
   vehicles: Vehicle[];
   onEdit: (vehicle: Vehicle) => void;
   onDelete: (id: string) => void;
+  onSell: (vehicle: Vehicle) => void;
 }
 
 export const InventoryTable: React.FC<InventoryTableProps> = ({
   vehicles,
   onEdit,
   onDelete,
+  onSell,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
@@ -50,16 +52,17 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             <th>السيارة</th>
             <th>الحالة</th>
             <th>الكيلومترات</th>
-            <th>الحاوية</th>
             <th>سعر البيع</th>
+            <th>الربح</th>
+            <th>العميل</th>
             <th>حالة المخزون</th>
-            <th>تاريخ الإضافة</th>
             <th className="action-column">إجراءات</th>
           </tr>
         </thead>
         <tbody>
           {vehicles.map((v) => {
             const statusInfo = getStatusInfo(v.status);
+            const profit = (v.sellingPrice || 0) - (v.importPrice || 0);
             return (
               <tr key={v.id}>
                 <td>
@@ -72,14 +75,22 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   {v.condition === 'new' ? '🆕 جديدة' : '📅 أقل من 3 سنوات'}
                 </td>
                 <td>{v.mileage ? v.mileage.toLocaleString() + ' كم' : '-'}</td>
-                <td>{v.containerNumber || '-'}</td>
                 <td>{v.sellingPrice ? formatCurrency(v.sellingPrice) : '-'}</td>
+                <td style={{ color: profit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+                  {v.status === 'sold' ? formatCurrency(profit) : '-'}
+                </td>
+                <td>
+                  {v.soldToClientName ? (
+                    <span title={v.soldAt ? formatDate(v.soldAt) : ''}>
+                      👤 {v.soldToClientName}
+                    </span>
+                  ) : '-'}
+                </td>
                 <td>
                   <Badge color={statusInfo.color} icon={statusInfo.emoji}>
                     {statusInfo.label}
                   </Badge>
                 </td>
-                <td>{formatDate(v.createdAt)}</td>
                 <td className="action-column relative">
                   <div className="action-buttons">
                     <button className="icon-btn" onClick={(e) => toggleMenu(v.id, e)}>
@@ -87,6 +98,11 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                     </button>
                     {activeMenu === v.id && (
                       <div className="action-menu glass-card" onClick={(e) => e.stopPropagation()}>
+                        {v.status !== 'sold' && (
+                          <button className="menu-item" onClick={() => { onSell(v); setActiveMenu(null); }}>
+                            <UserCheck size={16} /> ربط بعميل وبيع
+                          </button>
+                        )}
                         <button className="menu-item" onClick={() => { onEdit(v); setActiveMenu(null); }}>
                           <Edit size={16} /> تعديل
                         </button>

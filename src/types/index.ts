@@ -104,6 +104,10 @@ export interface Vehicle {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
+  // ربط بالعميل عند البيع
+  soldToClientId?: string;
+  soldToClientName?: string;
+  soldAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -159,6 +163,15 @@ export interface DashboardStats {
   clientsBySource: Record<LeadSource, number>;
   recentActivities: ActivityLog[];
   followUpNeeded: Client[];
+}
+
+export interface MonthlyProfit {
+  month: string; // YYYY-MM
+  label: string; // مثال: أغسطس 2026
+  salesCount: number;
+  totalRevenue: number;
+  totalCost: number;
+  profit: number;
 }
 
 export interface AgencySettings {

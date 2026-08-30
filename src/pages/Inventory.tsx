@@ -4,17 +4,21 @@ import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { InventoryTable } from '../components/Inventory/InventoryTable';
 import { InventoryModal } from '../components/Inventory/InventoryModal';
+import { SellModal } from '../components/Inventory/SellModal';
 import { useInventory } from '../hooks/useInventory';
+import { useClients } from '../hooks/useClients';
 import type { Vehicle, VehicleFormData, InventoryStatus } from '../types';
 import { INVENTORY_STATUSES } from '../utils/constants';
 import { formatCurrency } from '../utils/formatters';
 
 export const Inventory: React.FC = () => {
-  const { vehicles, addVehicle, updateVehicle, deleteVehicle, searchVehicles, stats } = useInventory();
+  const { vehicles, addVehicle, updateVehicle, deleteVehicle, sellVehicle, searchVehicles, stats } = useInventory();
+  const { clients } = useClients();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InventoryStatus | ''>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | undefined>(undefined);
+  const [sellVehicleData, setSellVehicleData] = useState<Vehicle | null>(null);
 
   const handleOpenModal = (vehicle?: Vehicle) => {
     setEditingVehicle(vehicle);
@@ -35,6 +39,12 @@ export const Inventory: React.FC = () => {
     handleCloseModal();
   };
 
+  const handleSellConfirm = (clientId: string, clientName: string, finalPrice: number) => {
+    if (sellVehicleData) {
+      sellVehicle(sellVehicleData.id, clientId, clientName, finalPrice);
+    }
+  };
+
   const filtered = React.useMemo(() => {
     return searchVehicles(searchQuery, statusFilter || undefined);
   }, [searchVehicles, searchQuery, statusFilter, vehicles]);
@@ -51,7 +61,6 @@ export const Inventory: React.FC = () => {
         </Button>
       </div>
 
-      {/* إحصائيات سريعة */}
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
         <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>إجمالي السيارات</div>
@@ -62,12 +71,12 @@ export const Inventory: React.FC = () => {
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e' }}>{stats.available}</div>
         </div>
         <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>في الطريق / جمرك</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#a855f7' }}>{stats.inTransit + stats.customs}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>مباعة</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#6c9fff' }}>{stats.sold}</div>
         </div>
         <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>قيمة المخزون</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{formatCurrency(stats.totalValue)}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>إجمالي الأرباح</div>
+          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#22c55e' }}>{formatCurrency(stats.totalProfit)}</div>
         </div>
       </div>
 
@@ -75,7 +84,7 @@ export const Inventory: React.FC = () => {
         <div className="flex gap-md justify-between items-center" style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ width: '280px' }}>
             <Input
-              placeholder="بحث بالماركة أو الموديل أو VIN..."
+              placeholder="بحث بالماركة أو الموديل أو العميل..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search size={16} />}
@@ -105,6 +114,7 @@ export const Inventory: React.FC = () => {
               deleteVehicle(id);
             }
           }}
+          onSell={(v) => setSellVehicleData(v)}
         />
       </div>
 
@@ -114,6 +124,14 @@ export const Inventory: React.FC = () => {
         onSave={handleSave}
         initialData={editingVehicle}
         title={editingVehicle ? 'تعديل سيارة' : 'إضافة سيارة للمخزون'}
+      />
+
+      <SellModal
+        isOpen={!!sellVehicleData}
+        onClose={() => setSellVehicleData(null)}
+        vehicle={sellVehicleData}
+        clients={clients}
+        onConfirm={handleSellConfirm}
       />
     </div>
   );
