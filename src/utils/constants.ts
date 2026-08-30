@@ -2,7 +2,7 @@
 // CRM مكاتب السيارات الصينية — Constants
 // ========================================
 
-import { FunnelStage, LeadSource, VehicleCondition, InventoryStatus } from '../types';
+import { FunnelStage, LeadSource, VehicleCondition, InventoryStatus, PartCategory } from '../types';
 import type { FunnelStageInfo, LeadSourceInfo } from '../types';
 
 export const FUNNEL_STAGES: FunnelStageInfo[] = [
@@ -71,6 +71,18 @@ export const INVENTORY_STATUSES = [
   { key: InventoryStatus.SOLD, label: 'مباعة', emoji: '💰', color: '#6c9fff' },
   { key: InventoryStatus.IN_TRANSIT, label: 'في الطريق', emoji: '🚢', color: '#a855f7' },
   { key: InventoryStatus.CUSTOMS, label: 'تحت الجمرك', emoji: '🛃', color: '#ef4444' },
+];
+
+export const PART_CATEGORIES = [
+  { key: PartCategory.ENGINE, label: 'محرك', emoji: '🔧' },
+  { key: PartCategory.BRAKES, label: 'فرامل', emoji: '🛑' },
+  { key: PartCategory.SUSPENSION, label: 'تعليق', emoji: '⚙️' },
+  { key: PartCategory.ELECTRICAL, label: 'كهرباء', emoji: '⚡' },
+  { key: PartCategory.BODY, label: 'هيكل وصبغ', emoji: '🚗' },
+  { key: PartCategory.FILTERS, label: 'فلاتر', emoji: '🛡️' },
+  { key: PartCategory.OILS, label: 'زيوت وسوائل', emoji: '🛢️' },
+  { key: PartCategory.ACCESSORIES, label: 'إكسسوارات', emoji: '✨' },
+  { key: PartCategory.OTHER, label: 'أخرى', emoji: '📦' },
 ];
 
 export const STAGE_MAP: Record<FunnelStage, FunnelStageInfo> = Object.fromEntries(

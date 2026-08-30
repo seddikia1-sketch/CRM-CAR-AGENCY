@@ -104,7 +104,6 @@ export interface Vehicle {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
-  // ربط بالعميل عند البيع
   soldToClientId?: string;
   soldToClientName?: string;
   soldAt?: string;
@@ -128,6 +127,64 @@ export interface VehicleFormData {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
+}
+
+// ========== قطع الغيار وخدمات ما بعد البيع ==========
+
+export const PartCategory = {
+  ENGINE: 'engine',
+  BRAKES: 'brakes',
+  SUSPENSION: 'suspension',
+  ELECTRICAL: 'electrical',
+  BODY: 'body',
+  FILTERS: 'filters',
+  OILS: 'oils',
+  ACCESSORIES: 'accessories',
+  OTHER: 'other',
+} as const;
+
+export type PartCategory = typeof PartCategory[keyof typeof PartCategory];
+
+export interface SparePart {
+  id: string;
+  name: string;
+  partNumber: string;
+  brand: string; // ماركة السيارة المتوافقة
+  category: PartCategory;
+  quantity: number;
+  costPrice: number;
+  sellingPrice: number;
+  minStock: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SparePartFormData {
+  name: string;
+  partNumber: string;
+  brand: string;
+  category: PartCategory;
+  quantity: number;
+  costPrice: number;
+  sellingPrice: number;
+  minStock: number;
+  notes: string;
+}
+
+export interface PartSale {
+  id: string;
+  partId: string;
+  partName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  costTotal: number;
+  profit: number;
+  clientId?: string;
+  clientName?: string;
+  notes: string;
+  soldAt: string;
 }
 
 export interface FunnelStageInfo {
@@ -166,8 +223,8 @@ export interface DashboardStats {
 }
 
 export interface MonthlyProfit {
-  month: string; // YYYY-MM
-  label: string; // مثال: أغسطس 2026
+  month: string;
+  label: string;
   salesCount: number;
   totalRevenue: number;
   totalCost: number;

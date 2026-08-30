@@ -7,6 +7,8 @@ const STORAGE_KEYS = {
   ACTIVITIES: 'crm_activities',
   SETTINGS: 'crm_settings',
   INVENTORY: 'crm_inventory',
+  SPARE_PARTS: 'crm_spare_parts',
+  PART_SALES: 'crm_part_sales',
 } as const;
 
 export const storage = {
