@@ -45,7 +45,6 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
 
   const handleDragStart = (e: React.DragEvent, clientId: string) => {
     e.dataTransfer.setData('text/plain', clientId);
-    // Optional: add visual feedback to the dragged element
   };
 
   return (
@@ -75,7 +74,7 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
       <div className="column-content custom-scrollbar">
         {clients.length === 0 ? (
           <div className="column-empty">
-            <p>Nenhum cliente</p>
+            <p>لا يوجد عملاء</p>
           </div>
         ) : (
           clients.map(client => (

@@ -37,8 +37,8 @@ export const Pipeline: React.FC = () => {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h1 className="page-title">Funil de Vendas</h1>
-        <p className="page-description">Arraste e solte clientes entre as etapas de venda.</p>
+        <h1 className="page-title">مراحل المبيعات</h1>
+        <p className="page-description">اسحب وأفلت العملاء بين مراحل البيع بسهولة.</p>
       </div>
       
       <div 
@@ -67,7 +67,7 @@ export const Pipeline: React.FC = () => {
         onClose={handleCloseModal}
         onSave={handleSaveClient}
         initialData={editingClient}
-        title="Editar Cliente"
+        title="تعديل العميل"
       />
     </div>
   );

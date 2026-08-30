@@ -12,15 +12,15 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) =>
   const getActionText = (activity: ActivityLog) => {
     switch (activity.action) {
       case 'created':
-        return 'foi adicionado(a) ao CRM';
+        return 'تم إضافته إلى النظام';
       case 'moved':
-        return `foi movido(a) para ${STAGE_MAP[activity.toStage as FunnelStage]?.label}`;
+        return `تم نقله إلى ${STAGE_MAP[activity.toStage as FunnelStage]?.label || ''}`;
       case 'updated':
-        return 'teve seus dados atualizados';
+        return 'تم تحديث بياناته';
       case 'deleted':
-        return 'foi removido(a) do CRM';
+        return 'تم حذفه من النظام';
       default:
-        return 'teve uma atividade';
+        return 'حدث نشاط';
     }
   };
 
@@ -36,15 +36,15 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) =>
   if (activities.length === 0) {
     return (
       <div className="glass-card" style={{ padding: 'var(--spacing-lg)' }}>
-        <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Atividades Recentes</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Nenhuma atividade registrada.</p>
+        <h3 style={{ marginBottom: 'var(--spacing-md)' }}>النشاطات الأخيرة</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>لا توجد نشاطات مسجلة.</p>
       </div>
     );
   }
 
   return (
     <div className="glass-card" style={{ padding: 'var(--spacing-lg)' }}>
-      <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Atividades Recentes</h3>
+      <h3 style={{ marginBottom: 'var(--spacing-md)' }}>النشاطات الأخيرة</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
         {activities.map((activity) => (
           <div key={activity.id} style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'flex-start' }}>

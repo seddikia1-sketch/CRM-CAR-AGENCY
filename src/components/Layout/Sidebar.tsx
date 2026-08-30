@@ -8,10 +8,10 @@ export const Sidebar: React.FC = () => {
   const { user, signOut } = useAuth();
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { path: '/clients', label: 'Clientes', icon: <Users size={20} /> },
-    { path: '/pipeline', label: 'Funil de Vendas', icon: <Filter size={20} /> },
-    { path: '/settings', label: 'Configurações', icon: <Settings size={20} /> },
+    { path: '/', label: 'لوحة التحكم', icon: <LayoutDashboard size={20} /> },
+    { path: '/clients', label: 'العملاء', icon: <Users size={20} /> },
+    { path: '/pipeline', label: 'مراحل المبيعات', icon: <Filter size={20} /> },
+    { path: '/settings', label: 'الإعدادات', icon: <Settings size={20} /> },
   ];
 
   return (
@@ -47,13 +47,13 @@ export const Sidebar: React.FC = () => {
             {user?.email?.[0].toUpperCase() || 'U'}
           </div>
           <div className="user-info">
-            <p className="user-name">{user?.email?.split('@')[0] || 'Usuário'}</p>
-            <p className="user-role">Agência de Carros</p>
+            <p className="user-name">{user?.email?.split('@')[0] || 'مستخدم'}</p>
+            <p className="user-role">مكتب سيارات صينية</p>
           </div>
           <button 
             className="logout-btn" 
             onClick={() => signOut()}
-            title="Sair"
+            title="تسجيل الخروج"
             style={{ 
               marginLeft: 'auto', 
               color: 'var(--text-secondary)',

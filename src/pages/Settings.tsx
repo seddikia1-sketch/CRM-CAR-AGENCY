@@ -25,21 +25,20 @@ export const Settings: React.FC = () => {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (storage.importData(content)) {
-        alert('Dados importados com sucesso! A página será recarregada.');
+        alert('تم استيراد البيانات بنجاح! سيتم إعادة تحميل الصفحة.');
         window.location.reload();
       } else {
-        alert('Erro ao importar dados. Arquivo inválido.');
+        alert('خطأ في استيراد البيانات. الملف غير صالح.');
       }
     };
     reader.readAsText(file);
     
-    // reset input
     e.target.value = '';
   };
 
   const handleClear = () => {
-    if (window.confirm('CUIDADO: Isso apagará TODOS os dados do CRM (clientes, atividades, etc). Esta ação não pode ser desfeita. Deseja continuar?')) {
-      if (window.confirm('Tem certeza absoluta?')) {
+    if (window.confirm('تحذير: سيتم حذف جميع بيانات الـ CRM (العملاء، النشاطات، إلخ). لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟')) {
+      if (window.confirm('هل أنت متأكد تماماً؟')) {
         storage.clearAll();
         window.location.reload();
       }
@@ -49,24 +48,24 @@ export const Settings: React.FC = () => {
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex' }}>
       <div className="page-header">
-        <h1 className="page-title">Configurações</h1>
-        <p className="page-description">Ajuste as preferências e gerencie os dados do seu CRM.</p>
+        <h1 className="page-title">الإعدادات</h1>
+        <p className="page-description">ضبط التفضيلات وإدارة بيانات نظام الـ CRM.</p>
       </div>
 
       <div className="glass-card" style={{ padding: 'var(--spacing-lg)' }}>
-        <h3 style={{ marginBottom: 'var(--spacing-md)' }}>Gerenciamento de Dados</h3>
+        <h3 style={{ marginBottom: 'var(--spacing-md)' }}>إدارة البيانات</h3>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)', fontSize: '0.875rem' }}>
-          Como os dados são salvos no seu navegador, é importante fazer backups regulares.
+          بما أن البيانات تُحفظ في المتصفح، يُفضل عمل نسخ احتياطية بشكل دوري.
         </p>
 
         <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
           <Button variant="secondary" leftIcon={<Download size={18} />} onClick={handleExport}>
-            Exportar Backup
+            تصدير نسخة احتياطية
           </Button>
 
           <div style={{ position: 'relative' }}>
             <Button variant="secondary" leftIcon={<Upload size={18} />} onClick={() => document.getElementById('import-file')?.click()}>
-              Importar Backup
+              استيراد نسخة احتياطية
             </Button>
             <input 
               type="file" 
@@ -78,7 +77,7 @@ export const Settings: React.FC = () => {
           </div>
 
           <Button variant="danger" leftIcon={<Trash2 size={18} />} onClick={handleClear}>
-            Apagar Todos os Dados
+            حذف جميع البيانات
           </Button>
         </div>
       </div>

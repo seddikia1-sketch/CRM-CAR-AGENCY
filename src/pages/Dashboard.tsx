@@ -13,26 +13,26 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex' }}>
       <div className="page-header" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-description">Visão geral do seu funil e desempenho de vendas.</p>
+        <h1 className="page-title">لوحة التحكم</h1>
+        <p className="page-description">نظرة عامة على مراحل البيع وأداء المبيعات.</p>
       </div>
       
       {/* KPIs */}
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
         <div className="glass-card flex-col gap-sm" style={{ padding: 'var(--spacing-lg)', flex: '1 1 200px' }}>
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Total em Negociação</h3>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>إجمالي قيد التفاوض</h3>
           <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
             {formatCurrency(stats.totalNegotiationValue)}
           </p>
         </div>
         <div className="glass-card flex-col gap-sm" style={{ padding: 'var(--spacing-lg)', flex: '1 1 200px' }}>
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Clientes Ativos</h3>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>العملاء النشطون</h3>
           <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
             {stats.activeClients}
           </p>
         </div>
         <div className="glass-card flex-col gap-sm" style={{ padding: 'var(--spacing-lg)', flex: '1 1 200px' }}>
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Taxa de Conversão</h3>
+          <h3 style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>نسبة التحويل</h3>
           <p style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent-success)' }}>
             {stats.conversionRate.toFixed(1)}%
           </p>
@@ -40,13 +40,13 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="flex gap-md" style={{ alignItems: 'flex-start' }}>
-        {/* Visual Funnel (CSS Based) */}
+        {/* Visual Funnel */}
         <div className="glass-card flex-col" style={{ flex: 2, padding: 'var(--spacing-lg)' }}>
-          <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>Funil de Vendas</h3>
+          <h3 style={{ marginBottom: 'var(--spacing-lg)' }}>مراحل المبيعات</h3>
           <div className="flex-col gap-sm">
             {FUNNEL_STAGES.map((stage) => {
               const count = stats.clientsByStage[stage.key] || 0;
-              const percentage = Math.max((count / maxClientsInStage) * 100, 2); // At least 2% to be visible
+              const percentage = Math.max((count / maxClientsInStage) * 100, 2);
 
               return (
                 <div key={stage.key} className="flex items-center gap-md">

@@ -10,13 +10,13 @@ export const Header: React.FC = () => {
         <Search className="search-icon" size={18} />
         <input 
           type="text" 
-          placeholder="Buscar clientes, veículos, telefone..." 
+          placeholder="بحث عن عملاء أو سيارات أو هاتف..." 
           className="search-input"
         />
       </div>
       
       <div className="header-actions">
-        <button className="notification-btn" aria-label="Notifications">
+        <button className="notification-btn" aria-label="الإشعارات">
           <Bell size={20} />
           <span className="notification-badge">3</span>
         </button>
@@ -25,12 +25,10 @@ export const Header: React.FC = () => {
           variant="primary" 
           leftIcon={<Plus size={18} />}
           onClick={() => {
-            // This will be connected to a global state or context later
-            // For now, it's just a UI element in the header
             document.dispatchEvent(new CustomEvent('open-add-client-modal'));
           }}
         >
-          Novo Cliente
+          عميل جديد
         </Button>
       </div>
     </header>

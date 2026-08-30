@@ -14,6 +14,8 @@ interface PipelineCardProps {
 export const PipelineCard: React.FC<PipelineCardProps> = ({ client, onClick, onDragStart }) => {
   const source = SOURCE_MAP[client.source];
 
+  const carInfo = [client.brand, client.model, client.year].filter(Boolean).join(' ') || client.vehicleInterest || '';
+
   return (
     <div 
       className="pipeline-card" 
@@ -23,11 +25,11 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({ client, onClick, onD
     >
       <div className="card-header">
         <h4 className="card-title">{client.name}</h4>
-        <span className="card-source" title={source.label}>{source.emoji}</span>
+        <span className="card-source" title={source?.label}>{source?.emoji}</span>
       </div>
       
-      {client.vehicleInterest && (
-        <p className="card-vehicle">{client.vehicleInterest}</p>
+      {carInfo && (
+        <p className="card-vehicle">{carInfo}</p>
       )}
       
       <div className="card-details">
@@ -51,7 +53,7 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({ client, onClick, onD
           className="whatsapp-action"
         >
           <MessageCircle size={14} />
-          <span>WhatsApp</span>
+          <span>واتساب</span>
         </a>
       </div>
     </div>
