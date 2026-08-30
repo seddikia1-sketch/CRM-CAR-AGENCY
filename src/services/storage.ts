@@ -1,7 +1,3 @@
-// ========================================
-// CRM — Storage Abstraction Layer
-// ========================================
-
 const STORAGE_KEYS = {
   CLIENTS: 'crm_clients',
   ACTIVITIES: 'crm_activities',
@@ -9,6 +5,8 @@ const STORAGE_KEYS = {
   INVENTORY: 'crm_inventory',
   SPARE_PARTS: 'crm_spare_parts',
   PART_SALES: 'crm_part_sales',
+  SERVICE_PROFILES: 'crm_service_profiles',
+  MAINTENANCE_RECORDS: 'crm_maintenance_records',
 } as const;
 
 export const storage = {

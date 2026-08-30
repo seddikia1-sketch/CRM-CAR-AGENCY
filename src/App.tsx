@@ -6,6 +6,7 @@ import { Clients } from './pages/Clients';
 import { Pipeline } from './pages/Pipeline';
 import { Inventory } from './pages/Inventory';
 import { SpareParts } from './pages/SpareParts';
+import { Maintenance } from './pages/Maintenance';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
@@ -31,6 +32,7 @@ function App() {
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="spare-parts" element={<SpareParts />} />
+                <Route path="maintenance" element={<Maintenance />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="settings" element={<Settings />} />
               </Route>

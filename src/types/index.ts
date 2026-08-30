@@ -181,12 +181,123 @@ export interface PartSale {
   profit: number;
   clientId?: string;
   clientName?: string;
-  // ربط بسيارة معينة
   vehicleId?: string;
   vehicleVin?: string;
-  vehicleLabel?: string; // مثال: Chery Tiggo 8 2024
+  vehicleLabel?: string;
   notes: string;
   soldAt: string;
+}
+
+// ========== الصيانة الدورية ==========
+
+export const ServiceType = {
+  OIL_CHANGE: 'oil_change',
+  OIL_FILTER: 'oil_filter',
+  AIR_FILTER: 'air_filter',
+  FUEL_FILTER: 'fuel_filter',
+  CABIN_FILTER: 'cabin_filter',
+  BRAKE_PADS: 'brake_pads',
+  BRAKE_FLUID: 'brake_fluid',
+  COOLANT: 'coolant',
+  SPARK_PLUGS: 'spark_plugs',
+  TIMING_BELT: 'timing_belt',
+  TRANSMISSION: 'transmission',
+  BATTERY: 'battery',
+  TIRES: 'tires',
+  FULL_SERVICE: 'full_service',
+  OTHER: 'other',
+} as const;
+
+export type ServiceType = typeof ServiceType[keyof typeof ServiceType];
+
+/** ملف صيانة لكل سيارة (مواصفات الزيت والفلاتر) */
+export interface VehicleServiceProfile {
+  id: string;
+  vehicleId?: string;
+  vin: string;
+  brand: string;
+  model: string;
+  year: number;
+  clientId?: string;
+  clientName?: string;
+  clientPhone?: string;
+  // مواصفات الزيت
+  oilType: string; // مثال: 5W-30 Fully Synthetic
+  oilCapacity: string; // مثال: 4.5 لتر
+  oilChangeIntervalKm: number; // كل كم كم
+  oilChangeIntervalMonths: number; // كل كم شهر
+  // الفلاتر
+  oilFilterType: string;
+  airFilterType: string;
+  fuelFilterType: string;
+  cabinFilterType: string;
+  // آخر صيانة
+  lastOilChangeDate: string;
+  lastOilChangeKm: number;
+  currentMileage: number;
+  // ملاحظات
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VehicleServiceProfileFormData {
+  vehicleId?: string;
+  vin: string;
+  brand: string;
+  model: string;
+  year: number;
+  clientId?: string;
+  clientName?: string;
+  clientPhone?: string;
+  oilType: string;
+  oilCapacity: string;
+  oilChangeIntervalKm: number;
+  oilChangeIntervalMonths: number;
+  oilFilterType: string;
+  airFilterType: string;
+  fuelFilterType: string;
+  cabinFilterType: string;
+  lastOilChangeDate: string;
+  lastOilChangeKm: number;
+  currentMileage: number;
+  notes: string;
+}
+
+/** سجل عملية صيانة */
+export interface MaintenanceRecord {
+  id: string;
+  profileId: string;
+  vin: string;
+  vehicleLabel: string;
+  clientName?: string;
+  serviceTypes: ServiceType[]; // يمكن أكثر من نوع في نفس الزيارة
+  serviceDate: string;
+  mileage: number;
+  oilTypeUsed?: string;
+  oilFilterUsed?: string;
+  airFilterUsed?: string;
+  fuelFilterUsed?: string;
+  cabinFilterUsed?: string;
+  cost: number;
+  notes: string;
+  nextOilChangeKm?: number;
+  nextOilChangeDate?: string;
+  createdAt: string;
+}
+
+export interface MaintenanceRecordFormData {
+  profileId: string;
+  serviceTypes: ServiceType[];
+  serviceDate: string;
+  mileage: number;
+  oilTypeUsed?: string;
+  oilFilterUsed?: string;
+  airFilterUsed?: string;
+  fuelFilterUsed?: string;
+  cabinFilterUsed?: string;
+  cost: number;
+  notes: string;
 }
 
 export interface FunnelStageInfo {
