@@ -6,7 +6,9 @@ import { formatCurrency, getWhatsAppLink } from '../utils/formatters';
 import { storage, STORAGE_KEYS } from '../services/storage';
 import type { Vehicle } from '../types';
 
-const OFFICE_PHONE = '0555000000'; // يمكن تغييره لاحقاً من الإعدادات
+/** أرقام المكتب الحقيقية */
+const OFFICE_PHONE = '0562832628';
+const OFFICE_WHATSAPP = '0673678501';
 const OFFICE_NAME = 'مكتب استيراد السيارات الصينية';
 
 function vehicleToCatalog(v: Vehicle): CatalogCar {
@@ -100,12 +102,11 @@ export const Store: React.FC = () => {
 
   const waForCar = (c: CatalogCar) => {
     const msg = `السلام عليكم،\nأريد الاستفسار عن السيارة:\n${c.brand} ${c.model} ${c.year}\nالسعر المعروض: ${c.price.toLocaleString('ar-DZ')} دج\nهل ما زالت متوفرة؟`;
-    return getWhatsAppLink(OFFICE_PHONE, msg);
+    return getWhatsAppLink(OFFICE_WHATSAPP, msg);
   };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* شريط علوي */}
       <header
         style={{
           position: 'sticky',
@@ -130,8 +131,17 @@ export const Store: React.FC = () => {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{OFFICE_NAME}</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <a href={getWhatsAppLink(OFFICE_PHONE, 'السلام عليكم، أريد الاستفسار عن السيارات المتوفرة.')} target="_blank" rel="noreferrer"
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <a href={`tel:${OFFICE_PHONE}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'transparent', color: 'var(--text-primary)', padding: '8px 12px',
+                borderRadius: 10, fontWeight: 600, fontSize: '0.85rem',
+                border: '1px solid var(--border-color)',
+              }}>
+              <Phone size={16} /> اتصال
+            </a>
+            <a href={getWhatsAppLink(OFFICE_WHATSAPP, 'السلام عليكم، أريد الاستفسار عن السيارات المتوفرة.')} target="_blank" rel="noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 background: '#25D366', color: '#fff', padding: '8px 12px', borderRadius: 10, fontWeight: 600, fontSize: '0.85rem',
@@ -143,7 +153,6 @@ export const Store: React.FC = () => {
         </div>
       </header>
 
-      {/* بانر */}
       <section style={{
         background: 'linear-gradient(135deg, rgba(108,92,231,0.35), rgba(0,206,201,0.15))',
         padding: '28px 16px 22px',
@@ -152,7 +161,7 @@ export const Store: React.FC = () => {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', marginBottom: 8 }}>سيارات صينية — متوفرة ومشحونة</h1>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 560, lineHeight: 1.6 }}>
-            تصفّح المخزون الحالي، السيارات في الطريق، وأحدث عروض الإعلانات. تواصل معنا مباشرة عبر واتساب.
+            تصفّح المخزون الحالي، السيارات في الطريق، وأحدث عروض الإعلانات. تواصل معنا مباشرة عبر واتساب أو الهاتف.
           </p>
           <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', fontSize: '0.9rem' }}>
             <span>✅ {available.length} متوفرة</span>
@@ -163,7 +172,6 @@ export const Store: React.FC = () => {
       </section>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '16px' }}>
-        {/* تبويبات */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {([
             ['all', 'الكل', cars.length],
@@ -217,7 +225,6 @@ export const Store: React.FC = () => {
           </div>
         )}
 
-        {/* عروض */}
         {tab === 'offers' && (
           <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {DEFAULT_OFFERS.filter((o) => o.active).map((o) => (
@@ -238,7 +245,7 @@ export const Store: React.FC = () => {
                 <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--accent-warning)' }}>{o.highlight}</div>
                 <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ساري حتى {o.validUntil}</div>
                 <a
-                  href={getWhatsAppLink(OFFICE_PHONE, `السلام عليكم، مهتم بعرض: ${o.title} — ${o.carLabel}`)}
+                  href={getWhatsAppLink(OFFICE_WHATSAPP, `السلام عليكم، مهتم بعرض: ${o.title} — ${o.carLabel}`)}
                   target="_blank"
                   rel="noreferrer"
                   style={{
@@ -253,7 +260,6 @@ export const Store: React.FC = () => {
           </div>
         )}
 
-        {/* شبكة السيارات */}
         {tab !== 'offers' && (
           <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
             {filtered.length === 0 && (
@@ -328,7 +334,6 @@ export const Store: React.FC = () => {
           </div>
         )}
 
-        {/* تذييل */}
         <footer style={{
           marginTop: 36, padding: '20px 0', borderTop: '1px solid var(--border-color)',
           color: 'var(--text-secondary)', fontSize: '0.85rem',
@@ -336,8 +341,15 @@ export const Store: React.FC = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>{OFFICE_NAME}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={14} /> واتساب / هاتف: {OFFICE_PHONE}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}><MapPin size={14} /> الجزائر</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Phone size={14} /> هاتف: {OFFICE_PHONE}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <MessageCircle size={14} /> واتساب: {OFFICE_WHATSAPP}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <MapPin size={14} /> الجزائر
+              </div>
             </div>
             <div>
               الأسعار قابلة للتغيير حسب العرض والطلب والجمركة.
