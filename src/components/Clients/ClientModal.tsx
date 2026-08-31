@@ -74,8 +74,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       setFormError('يرجى إدخال اسم العميل');
       return;
     }
-    if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length < 8) {
-      setFormError('يرجى إدخال رقم هاتف صحيح');
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 9) {
+      setFormError('يرجى إدخال رقم هاتف صحيح (مثال: 0555123456)');
       return;
     }
 
@@ -131,6 +132,11 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           <Input
             label="واتساب / الهاتف *"
             name="phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left', unicodeBidi: 'isolate' } as React.CSSProperties}
             value={formData.phone}
             onChange={handleChange}
             required
@@ -143,6 +149,8 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             label="البريد الإلكتروني"
             name="email"
             type="email"
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
             value={formData.email}
             onChange={handleChange}
             placeholder="ahmed@email.com"
@@ -191,7 +199,7 @@ export const ClientModal: React.FC<ClientModalProps> = ({
 
           <div className="flex gap-md">
             <Input label="تاريخ الشحن المتوقع" name="shippingDate" type="date" value={formData.shippingDate} onChange={handleChange} />
-            <Input label="رقم الحاوية" name="containerNumber" value={formData.containerNumber} onChange={handleChange} placeholder="MSCU1234567" />
+            <Input label="رقم الحاوية" name="containerNumber" value={formData.containerNumber} onChange={handleChange} placeholder="MSCU1234567" dir="ltr" style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties} />
           </div>
 
           <div className="flex gap-md" style={{ marginTop: '12px' }}>

@@ -2,6 +2,54 @@
 // CRM — Formatters & Utilities (الجزائر)
 // ========================================
 
+/** استخراج الأرقام فقط */
+export function digitsOnly(phone: string): string {
+  return (phone || '').replace(/\D/g, '');
+}
+
+/**
+ * تطبيع رقم جزائري لصيغة دولية بدون + : 213XXXXXXXXX
+ * يقبل: 05xxxxxxxx / 6xxxxxxxx / 2135xxxxxxxx / +213...
+ */
+export function toAlgeriaWhatsAppNumber(phone: string): string {
+  let d = digitsOnly(phone);
+
+  // إزالة أصفار بادئة زائدة بعد مفتاح الدولة بالخطأ
+  if (d.startsWith('2130')) {
+    d = '213' + d.slice(4);
+  }
+
+  if (d.startsWith('213') && d.length >= 12) {
+    return d.slice(0, 13); // 213 + 9 أرقام
+  }
+
+  // رقم محلي يبدأ بـ 0 (10 أرقام)
+  if (d.startsWith('0') && d.length === 10) {
+    return '213' + d.slice(1);
+  }
+
+  // بدون صفر: 9 أرقام (5/6/7...)
+  if (d.length === 9 && /^[567]/.test(d)) {
+    return '213' + d;
+  }
+
+  // 10 أرقام بدون صفر أحياناً بالخطأ
+  if (d.length === 10 && /^[567]/.test(d)) {
+    return '213' + d.slice(0, 9);
+  }
+
+  // إن بدأ بـ 213 بالفعل
+  if (d.startsWith('213')) {
+    return d;
+  }
+
+  // افتراضي: أضف 213
+  if (d.startsWith('0')) {
+    return '213' + d.slice(1);
+  }
+  return '213' + d;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('ar-DZ', {
     style: 'currency',
@@ -11,15 +59,22 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+/** عرض الرقم من اليسار لليمين بدون قلب في الواجهة العربية */
 export function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 10 && digits.startsWith('0')) {
-    return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7)}`;
+  const digits = digitsOnly(phone);
+  let local = digits;
+
+  if (digits.startsWith('213') && digits.length >= 12) {
+    local = '0' + digits.slice(3);
   }
-  if (digits.length === 9) {
-    return `0${digits.slice(0, 1)} ${digits.slice(1, 4)} ${digits.slice(4, 6)} ${digits.slice(6)}`;
+
+  if (local.length === 10 && local.startsWith('0')) {
+    return `${local.slice(0, 4)} ${local.slice(4, 6)} ${local.slice(6, 8)} ${local.slice(8)}`;
   }
-  return phone;
+  if (local.length === 9) {
+    return `0${local.slice(0, 3)} ${local.slice(3, 5)} ${local.slice(5, 7)} ${local.slice(7)}`;
+  }
+  return phone || '-';
 }
 
 export function formatDate(dateStr: string): string {
@@ -60,15 +115,9 @@ export function formatRelativeTime(dateStr: string): string {
   return formatDate(dateStr);
 }
 
-/** رابط واتساب — مع رسالة اختيارية */
+/** رابط واتساب صالح للأرقام الجزائرية */
 export function getWhatsAppLink(phone: string, message?: string): string {
-  const digits = phone.replace(/\D/g, '');
-  let fullNumber = digits;
-  if (digits.startsWith('0')) {
-    fullNumber = '213' + digits.slice(1);
-  } else if (!digits.startsWith('213')) {
-    fullNumber = '213' + digits;
-  }
+  const fullNumber = toAlgeriaWhatsAppNumber(phone);
   const base = `https://wa.me/${fullNumber}`;
   if (message && message.trim()) {
     return `${base}?text=${encodeURIComponent(message.trim())}`;
@@ -82,10 +131,23 @@ export function daysSince(dateStr: string): number {
   return Math.floor((now.getTime() - date.getTime()) / 86400000);
 }
 
+/**
+ * قناع إدخال: يحفظ الأرقام فقط مع مسافات للعرض
+ * لا يقلب الترتيب — الكتابة من اليسار دائماً مع dir=ltr في الحقل
+ */
 export function phoneMask(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;
-  if (digits.length <= 7) return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
-  return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7)}`;
+  let digits = digitsOnly(value).slice(0, 13);
+
+  // إذا لصق المستخدم +213 أو 213
+  if (digits.startsWith('213')) {
+    digits = '0' + digits.slice(3);
+    digits = digits.slice(0, 10);
+  } else {
+    digits = digits.slice(0, 10);
+  }
+
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+  if (digits.length <= 8) return `${digits.slice(0, 4)} ${digits.slice(4, 6)} ${digits.slice(6)}`;
+  return `${digits.slice(0, 4)} ${digits.slice(4, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
 }

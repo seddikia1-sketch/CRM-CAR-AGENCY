@@ -3,7 +3,7 @@ import { MoreHorizontal, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { FunnelStage } from '../../types';
 import type { Client } from '../../types';
 import { STAGE_MAP, SOURCE_MAP } from '../../utils/constants';
-import { formatCurrency, formatDate, getWhatsAppLink } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatPhone, getWhatsAppLink } from '../../utils/formatters';
 import { Badge } from '../UI/Badge';
 import './ClientTable.css';
 
@@ -18,7 +18,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   clients,
   onEdit,
   onDelete,
-  onUpdateStage
+  onUpdateStage,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
@@ -60,7 +60,6 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           {clients.map((client) => {
             const stage = STAGE_MAP[client.funnelStage];
             const source = SOURCE_MAP[client.source];
-
             const carInfo = [client.brand, client.model, client.year].filter(Boolean).join(' ') || client.vehicleInterest || '-';
 
             return (
@@ -68,7 +67,13 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                 <td>
                   <div className="client-name-cell">
                     <p className="client-name">{client.name}</p>
-                    <p className="client-phone">{client.phone}</p>
+                    <p
+                      className="client-phone"
+                      dir="ltr"
+                      style={{ direction: 'ltr', textAlign: 'left', unicodeBidi: 'isolate' }}
+                    >
+                      {formatPhone(client.phone)}
+                    </p>
                   </div>
                 </td>
                 <td>
@@ -107,10 +112,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                       <MessageCircle size={18} />
                     </a>
 
-                    <button
-                      className="icon-btn"
-                      onClick={(e) => toggleMenu(client.id, e)}
-                    >
+                    <button className="icon-btn" onClick={(e) => toggleMenu(client.id, e)}>
                       <MoreHorizontal size={18} />
                     </button>
 
