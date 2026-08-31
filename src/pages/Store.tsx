@@ -1,71 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Tag, MessageCircle, Search, Phone, MapPin } from 'lucide-react';
-import { DEFAULT_CATALOG, DEFAULT_OFFERS, type CatalogCar } from '../data/storeCatalog';
+import { DEFAULT_OFFERS, type CatalogCar } from '../data/storeCatalog';
 import { formatCurrency, getWhatsAppLink, formatPhone } from '../utils/formatters';
-import { storage, STORAGE_KEYS } from '../services/storage';
 import { getOfficeSettings } from '../services/officeSettings';
+import { getPublicCars } from '../services/publicInventory';
 import { CarAdCard } from '../components/Store/CarAdCard';
 import { CarAdDetail } from '../components/Store/CarAdDetail';
-import type { Vehicle } from '../types';
-
-function vehicleToCatalog(v: Vehicle): CatalogCar {
-  return {
-    id: v.id,
-    brand: v.brand,
-    model: v.model,
-    year: v.year,
-    price: v.sellingPrice || 0,
-    mileage: v.mileage || 0,
-    color: v.color || '',
-    condition: v.condition === 'new' ? 'new' : 'under_3_years',
-    status:
-      v.status === 'in_transit'
-        ? 'in_transit'
-        : v.status === 'customs'
-        ? 'customs'
-        : v.status === 'reserved'
-        ? 'reserved'
-        : 'available',
-    features: [
-      v.condition === 'new' ? 'جديدة' : 'أقل من 3 سنوات',
-      v.color || '',
-      v.vin ? `VIN …${v.vin.slice(-6)}` : '',
-      v.containerNumber ? `حاوية ${v.containerNumber}` : '',
-      v.status === 'in_transit' ? 'مشحونة' : '',
-      v.status === 'available' ? 'تسليم فوري' : '',
-    ].filter(Boolean),
-    shippingDate: v.shippingDate,
-    description: v.notes || `${v.brand} ${v.model} ${v.year} — متوفرة لدى المكتب. تواصل للحجز والمعاينة.`,
-    badge:
-      v.status === 'in_transit'
-        ? 'في الطريق'
-        : v.status === 'customs'
-        ? 'جمرك'
-        : v.status === 'reserved'
-        ? 'محجوزة'
-        : 'متوفرة الآن',
-    images: Array.isArray(v.images) ? v.images : [],
-    videoUrl: v.videoUrl || '',
-  };
-}
-
-function useStoreCars(): CatalogCar[] {
-  return useMemo(() => {
-    const inventory = storage.get<Vehicle[]>(STORAGE_KEYS.INVENTORY) || [];
-    const publicOnes = inventory.filter((v) => v.status !== 'sold');
-    if (publicOnes.length > 0) return publicOnes.map(vehicleToCatalog);
-    return DEFAULT_CATALOG;
-  }, []);
-}
+import { LeadFormModal } from '../components/Store/LeadFormModal';
 
 export const Store: React.FC = () => {
   const office = getOfficeSettings();
-  const cars = useStoreCars();
+  const cars = useMemo(() => getPublicCars(), []);
   const [tab, setTab] = useState<'all' | 'available' | 'shipped' | 'offers'>('all');
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
   const [selected, setSelected] = useState<CatalogCar | null>(null);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [leadCar, setLeadCar] = useState<CatalogCar | null>(null);
 
   const brands = useMemo(() => Array.from(new Set(cars.map((c) => c.brand))).sort(), [cars]);
   const available = cars.filter((c) => c.status === 'available' || c.status === 'reserved');
@@ -91,6 +43,11 @@ export const Store: React.FC = () => {
     return getWhatsAppLink(office.whatsapp, msg);
   };
 
+  const openLead = (c: CatalogCar) => {
+    setLeadCar(c);
+    setLeadOpen(true);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <header style={{
@@ -113,6 +70,16 @@ export const Store: React.FC = () => {
           </Link>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Link to="/home" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>الرئيسية</Link>
+            <button
+              type="button"
+              onClick={() => { setLeadCar(null); setLeadOpen(true); }}
+              style={{
+                padding: '8px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(90deg,#6c5ce7,#00cec9)', color: '#fff', fontWeight: 800, fontSize: '0.85rem',
+              }}
+            >
+              اشتري الآن
+            </button>
             <a href={`tel:${office.phone}`} style={{
               display: 'flex', alignItems: 'center', gap: 6, background: 'transparent',
               color: 'var(--text-primary)', padding: '8px 12px', borderRadius: 10, fontWeight: 600,
@@ -141,13 +108,13 @@ export const Store: React.FC = () => {
             display: 'inline-block', background: 'rgba(251,191,36,0.2)', color: '#fbbf24',
             fontSize: '0.8rem', fontWeight: 800, padding: '4px 12px', borderRadius: 999, marginBottom: 10,
           }}>
-            عروض إعلانية حصرية
+            من المخزون مباشرة · {cars.length} إعلان
           </div>
           <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', marginBottom: 8 }}>
-            سيارتك في انتظارك — اختر و احجز الآن
+            سيارتك في انتظارك — احجز أو اشترِ الآن
           </h1>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 560, lineHeight: 1.6 }}>
-            إعلانات جاهزة بالمواصفات والسعر. تصفّح، شاهد الصور والفيديو، وتواصل فوراً عبر واتساب.
+            السيارات المعروضة مربوطة بمخزون المكتب. اترك رقمك ونتصل بك لتأكيد الحجز.
           </p>
           <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', fontSize: '0.9rem' }}>
             <span>✅ {available.length} متوفرة</span>
@@ -211,11 +178,13 @@ export const Store: React.FC = () => {
                 <div style={{ marginTop: 6, fontSize: '1.25rem', color: 'var(--accent-success)', fontWeight: 700 }}>
                   من {formatCurrency(o.priceFrom)}
                 </div>
-                <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--accent-warning)' }}>{o.highlight}</div>
-                <a href={getWhatsAppLink(office.whatsapp, `السلام عليكم، مهتم بعرض: ${o.title} — ${o.carLabel}`)} target="_blank" rel="noreferrer"
-                  style={{ display: 'block', textAlign: 'center', marginTop: 14, background: 'linear-gradient(90deg,#25D366,#128C7E)', color: '#fff', padding: '12px', borderRadius: 10, fontWeight: 800 }}>
-                  احصل على العرض الآن
-                </a>
+                <button
+                  type="button"
+                  onClick={() => { setLeadCar(null); setLeadOpen(true); }}
+                  style={{ width: '100%', marginTop: 14, background: 'linear-gradient(90deg,#6c5ce7,#00cec9)', color: '#fff', padding: '12px', borderRadius: 10, fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                >
+                  احجز هذا العرض
+                </button>
               </div>
             ))}
           </div>
@@ -225,20 +194,35 @@ export const Store: React.FC = () => {
           <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))' }}>
             {filtered.length === 0 && (
               <div className="glass-card" style={{ padding: 24, gridColumn: '1 / -1', textAlign: 'center' }}>
-                لا توجد إعلانات مطابقة. تواصل معنا عبر واتساب.
+                لا توجد سيارات في المخزون مطابقة. أضف سيارات من نظام المكتب.
               </div>
             )}
             {filtered.map((c) => (
-              <CarAdCard
-                key={c.id}
-                car={c}
-                onOpen={() => setSelected(c)}
-                onWhatsApp={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.open(waForCar(c), '_blank');
-                }}
-              />
+              <div key={c.id}>
+                <CarAdCard
+                  car={c}
+                  onOpen={() => setSelected(c)}
+                  onWhatsApp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openLead(c);
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8, padding: '0 14px 14px', marginTop: -4 }}>
+                  <button type="button" onClick={() => openLead(c)} style={{
+                    flex: 1, background: 'linear-gradient(90deg,#6c5ce7,#00cec9)', color: '#fff',
+                    padding: '10px', borderRadius: 10, fontWeight: 800, border: 'none', cursor: 'pointer',
+                  }}>
+                    اشتري الآن
+                  </button>
+                  <button type="button" onClick={() => openLead(c)} style={{
+                    flex: 1, background: 'transparent', color: 'var(--text-primary)',
+                    padding: '10px', borderRadius: 10, fontWeight: 700, border: '1px solid var(--border-color)', cursor: 'pointer',
+                  }}>
+                    احجز
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -278,6 +262,13 @@ export const Store: React.FC = () => {
           onClose={() => setSelected(null)}
         />
       )}
+
+      <LeadFormModal
+        isOpen={leadOpen}
+        onClose={() => setLeadOpen(false)}
+        car={leadCar}
+        title={leadCar ? 'اشتري الآن — تأكيد الحجز' : 'سجّل طلبك'}
+      />
     </div>
   );
 };

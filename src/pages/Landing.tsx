@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Car, MessageCircle, Phone, Store, Shield, Ship, Wrench,
   Users, ArrowLeft, CheckCircle2, Sparkles,
 } from 'lucide-react';
 import { getOfficeSettings } from '../services/officeSettings';
-import { formatPhone, getWhatsAppLink } from '../utils/formatters';
+import { formatPhone, getWhatsAppLink, formatCurrency } from '../utils/formatters';
+import { getPublicCars } from '../services/publicInventory';
+import { CarAdCard } from '../components/Store/CarAdCard';
+import { LeadFormModal } from '../components/Store/LeadFormModal';
+import type { CatalogCar } from '../data/storeCatalog';
 
 const FEATURES = [
   {
@@ -31,21 +35,30 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: '1', t: 'تصفّح المتجر', d: 'اختر السيارة المناسبة من العروض المتاحة أو المشحونة.' },
-  { n: '2', t: 'تواصل معنا', d: 'واتساب أو اتصال — نرد عليك بسرعة ونؤكد التوفر.' },
-  { n: '3', t: 'احجز واستلم', d: 'عربون، إجراءات، ثم التسليم أو المتابعة حتى الوصول.' },
+  { n: '1', t: 'تصفّح السيارات', d: 'من هذه الصفحة أو المتجر — المخزون يُحدَّث تلقائياً.' },
+  { n: '2', t: 'اضغط اشتري الآن / احجز', d: 'أدخل اسمك ورقم هاتفك وسنتصل بك للتأكيد.' },
+  { n: '3', t: 'أكد واستلم', d: 'نتفق على العربون والتسليم أو موعد الوصول.' },
 ];
 
 export const Landing: React.FC = () => {
   const office = getOfficeSettings();
+  const cars = useMemo(() => getPublicCars(), []);
+  const preview = cars.slice(0, 6);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [selectedCar, setSelectedCar] = useState<CatalogCar | null>(null);
+
   const wa = getWhatsAppLink(
     office.whatsapp,
     `السلام عليكم،\nوصلت عبر صفحة ${office.officeName}.\nأريد الاستفسار عن السيارات المتوفرة.`
   );
 
+  const openLead = (car?: CatalogCar | null) => {
+    setSelectedCar(car || null);
+    setLeadOpen(true);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* شريط علوي */}
       <header
         style={{
           position: 'sticky',
@@ -102,6 +115,22 @@ export const Landing: React.FC = () => {
             >
               المتجر
             </Link>
+            <button
+              type="button"
+              onClick={() => openLead(null)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 10,
+                background: 'linear-gradient(90deg,#6c5ce7,#00cec9)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              اشتري الآن
+            </button>
             <a
               href={wa}
               target="_blank"
@@ -125,10 +154,11 @@ export const Landing: React.FC = () => {
               style={{
                 padding: '8px 14px',
                 borderRadius: 10,
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                fontWeight: 700,
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                fontWeight: 600,
                 fontSize: '0.85rem',
+                border: '1px solid var(--border-color)',
               }}
             >
               دخول المكتب
@@ -137,7 +167,6 @@ export const Landing: React.FC = () => {
         </div>
       </header>
 
-      {/* البطل */}
       <section
         style={{
           position: 'relative',
@@ -162,7 +191,7 @@ export const Landing: React.FC = () => {
               marginBottom: 16,
             }}
           >
-            <Sparkles size={14} /> استيراد · بيع · خدمة ما بعد البيع
+            <Sparkles size={14} /> {cars.length} سيارة معروضة من المخزون
           </div>
 
           <h1
@@ -181,12 +210,13 @@ export const Landing: React.FC = () => {
           </h1>
 
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: 520, lineHeight: 1.7, marginBottom: 24 }}>
-            متجر إلكتروني لإعلانات السيارات المتوفرة والمشحونة، مع تواصل مباشر عبر واتساب وإدارة احترافية من المكتب.
+            كل سيارة تُضاف للمخزون تظهر هنا وفي المتجر. احجز الآن واترك رقمك لنتصل بك.
           </p>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link
-              to="/store"
+            <button
+              type="button"
+              onClick={() => openLead(null)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -197,15 +227,14 @@ export const Landing: React.FC = () => {
                 borderRadius: 12,
                 fontWeight: 900,
                 fontSize: '1rem',
+                border: 'none',
+                cursor: 'pointer',
               }}
             >
-              <Store size={20} /> تصفّح المتجر الآن
-              <ArrowLeft size={18} />
-            </Link>
-            <a
-              href={wa}
-              target="_blank"
-              rel="noreferrer"
+              اشتري الآن / سجّل طلبك
+            </button>
+            <Link
+              to="/store"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -218,39 +247,104 @@ export const Landing: React.FC = () => {
                 border: '1px solid var(--border-color)',
               }}
             >
-              <MessageCircle size={18} /> اسأل عبر واتساب
-            </a>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 20,
-              marginTop: 28,
-              flexWrap: 'wrap',
-              fontSize: '0.9rem',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} color="#22c55e" /> سيارات أقل من 3 سنوات
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} color="#22c55e" /> عروض إعلانية جاهزة
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle2 size={16} color="#22c55e" /> رد سريع على واتساب
-            </span>
+              <Store size={18} /> كل الإعلانات
+              <ArrowLeft size={18} />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* مزايا */}
+      {/* سيارات من المخزون */}
+      <section style={{ padding: '28px 16px 36px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>سيارات متاحة الآن</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              تُحدَّث تلقائياً من مخزون المكتب (غير المباعة)
+            </p>
+          </div>
+          <Link to="/store" style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
+            عرض الكل في المتجر ←
+          </Link>
+        </div>
+
+        {preview.length === 0 ? (
+          <div className="glass-card" style={{ padding: 24, textAlign: 'center' }}>
+            لا توجد سيارات في المخزون حالياً. تواصل معنا عبر واتساب.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))' }}>
+            {preview.map((c) => (
+              <div key={c.id} style={{ position: 'relative' }}>
+                <CarAdCard
+                  car={c}
+                  onOpen={() => openLead(c)}
+                  onWhatsApp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openLead(c);
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: -6, padding: '0 14px 14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => openLead(c)}
+                    style={{
+                      flex: 1,
+                      background: 'linear-gradient(90deg,#6c5ce7,#00cec9)',
+                      color: '#fff',
+                      padding: '10px',
+                      borderRadius: 10,
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    اشتري الآن
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openLead(c)}
+                    style={{
+                      flex: 1,
+                      background: 'transparent',
+                      color: 'var(--text-primary)',
+                      padding: '10px',
+                      borderRadius: 10,
+                      fontWeight: 700,
+                      border: '1px solid var(--border-color)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    احجز
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <button
+            type="button"
+            onClick={() => openLead(null)}
+            style={{
+              background: '#fbbf24',
+              color: '#0f172a',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontWeight: 900,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            سجّل اهتمامك — سنتصل بك
+          </button>
+        </div>
+      </section>
+
       <section style={{ padding: '36px 16px', maxWidth: 1100, margin: '0 auto' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 8 }}>لماذا تتعامل معنا؟</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 20, maxWidth: 480 }}>
-          نقدّم تجربة واضحة من التصفح حتى الاستلام، مع أدوات مكتب متكاملة.
-        </p>
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
           {FEATURES.map((f) => (
             <div key={f.title} className="glass-card" style={{ padding: 18 }}>
@@ -262,7 +356,6 @@ export const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* خطوات */}
       <section
         style={{
           padding: '32px 16px',
@@ -299,138 +392,62 @@ export const Landing: React.FC = () => {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 22, textAlign: 'center' }}>
-            <Link
-              to="/store"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                padding: '12px 20px',
-                borderRadius: 12,
-                fontWeight: 800,
-              }}
-            >
-              ابدأ من المتجر <ArrowLeft size={18} />
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* روابط سريعة */}
       <section style={{ padding: '36px 16px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          <div
-            className="glass-card"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(145deg, rgba(108,92,231,0.25), rgba(18,18,26,0.9))',
-            }}
-          >
+          <div className="glass-card" style={{ padding: 22, background: 'linear-gradient(145deg, rgba(108,92,231,0.25), rgba(18,18,26,0.9))' }}>
             <Store size={28} color="#a78bfa" style={{ marginBottom: 10 }} />
             <h3 style={{ fontWeight: 900, marginBottom: 8 }}>المتجر الإلكتروني</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: 16 }}>
-              إعلانات السيارات، الأسعار، الصور، والفيديو. للزبائن بدون تسجيل دخول.
+              كل سيارات المخزون غير المباعة + عروض وإعلانات.
             </p>
-            <Link
-              to="/store"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: '#fff',
-                background: 'var(--accent-primary)',
-                padding: '10px 16px',
-                borderRadius: 10,
-                fontWeight: 700,
-              }}
-            >
+            <Link to="/store" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#fff', background: 'var(--accent-primary)', padding: '10px 16px', borderRadius: 10, fontWeight: 700 }}>
               فتح المتجر <ArrowLeft size={16} />
             </Link>
           </div>
 
-          <div
-            className="glass-card"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(145deg, rgba(0,206,201,0.18), rgba(18,18,26,0.9))',
-            }}
-          >
+          <div className="glass-card" style={{ padding: 22, background: 'linear-gradient(145deg, rgba(0,206,201,0.18), rgba(18,18,26,0.9))' }}>
             <Users size={28} color="#2dd4bf" style={{ marginBottom: 10 }} />
             <h3 style={{ fontWeight: 900, marginBottom: 8 }}>مكتب الإدارة (CRM)</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: 16 }}>
-              للموظفين فقط: العملاء، المخزون، الحجوزات، الدفعات، والتقارير.
+              للموظفين: المخزون، العملاء، الحجوزات الواردة من الموقع.
             </p>
-            <Link
-              to="/login"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: '#0f172a',
-                background: '#2dd4bf',
-                padding: '10px 16px',
-                borderRadius: 10,
-                fontWeight: 800,
-              }}
-            >
+            <Link to="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#0f172a', background: '#2dd4bf', padding: '10px 16px', borderRadius: 10, fontWeight: 800 }}>
               دخول المكتب <ArrowLeft size={16} />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* تواصل */}
-      <section
-        style={{
-          padding: '32px 16px 40px',
-          borderTop: '1px solid var(--border-color)',
-          background: 'rgba(0,0,0,0.2)',
-        }}
-      >
+      <section style={{ padding: '32px 16px 40px', borderTop: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.2)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontWeight: 900, marginBottom: 8 }}>تواصل معنا مباشرة</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 18 }}>{office.officeName} — {office.city}</p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href={`tel:${office.phone}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 18px',
-                borderRadius: 12,
-                border: '1px solid var(--border-color)',
-                fontWeight: 700,
-              }}
-            >
+            <a href={`tel:${office.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, border: '1px solid var(--border-color)', fontWeight: 700 }}>
               <Phone size={18} />
               <span dir="ltr" style={{ direction: 'ltr' }}>{formatPhone(office.phone)}</span>
             </a>
-            <a
-              href={wa}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 18px',
-                borderRadius: 12,
-                background: '#25D366',
-                color: '#fff',
-                fontWeight: 800,
-              }}
-            >
+            <a href={wa} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, background: '#25D366', color: '#fff', fontWeight: 800 }}>
               <MessageCircle size={18} />
               <span dir="ltr" style={{ direction: 'ltr' }}>{formatPhone(office.whatsapp)}</span>
             </a>
+            <button type="button" onClick={() => openLead(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, background: 'var(--accent-primary)', color: '#fff', fontWeight: 800, border: 'none', cursor: 'pointer' }}>
+              اشتري الآن
+            </button>
           </div>
           <p style={{ marginTop: 20, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{office.note}</p>
         </div>
       </section>
+
+      <LeadFormModal
+        isOpen={leadOpen}
+        onClose={() => setLeadOpen(false)}
+        car={selectedCar}
+        title={selectedCar ? 'اشتري الآن — تأكيد الحجز' : 'سجّل طلبك — سنتصل بك'}
+      />
     </div>
   );
 };
