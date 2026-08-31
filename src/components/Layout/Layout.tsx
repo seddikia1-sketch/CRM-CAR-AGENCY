@@ -8,6 +8,7 @@ import './Layout.css';
 
 export const Layout: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const { addClient } = useClients();
 
   React.useEffect(() => {
@@ -16,19 +17,31 @@ export const Layout: React.FC = () => {
     return () => document.removeEventListener('open-add-client-modal', handleOpenModal);
   }, []);
 
+  // إغلاق القائمة عند تغيير حجم الشاشة للكمبيوتر
+  React.useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 900) setSidebarOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
-    <div className="layout">
-      <Sidebar />
+    <div className={`layout ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
+      <Sidebar onNavigate={() => setSidebarOpen(false)} mobileOpen={sidebarOpen} />
       <div className="layout-content">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
         <main className="main-content">
           <Outlet />
         </main>
       </div>
 
-      <ClientModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ClientModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSave={addClient}
       />
     </div>

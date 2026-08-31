@@ -1,18 +1,25 @@
 .layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  position: relative;
 }
 
 .layout-content {
   flex: 1;
-  margin-left: 260px; /* Same as sidebar width */
+  margin-right: 260px; /* RTL: sidebar on the right conceptually but we keep left margin for LTR sidebar */
+  margin-left: 260px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-image: 
+  min-height: 100dvh;
+  background-image:
     radial-gradient(circle at 15% 50%, rgba(108, 92, 231, 0.05), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(0, 206, 201, 0.05), transparent 25%);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .main-content {
@@ -20,27 +27,68 @@
   padding: var(--spacing-xl);
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Page transitions could go here */
-.page-enter {
-  opacity: 0;
-  transform: translateY(10px);
+.sidebar-overlay {
+  display: none;
 }
 
-.page-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
+/* ===== جوال وآيباد ===== */
+@media (max-width: 900px) {
+  .layout-content {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .main-content {
+    padding: 12px 14px 24px;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 40;
+  }
+
+  /* القائمة تظهر كدرج */
+  .layout .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(105%);
+    transition: transform 0.25s ease;
+    width: min(280px, 85vw) !important;
+  }
+
+  .layout.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
 }
 
-.page-exit {
-  opacity: 1;
-  transform: translateY(0);
-}
+@media (max-width: 600px) {
+  .main-content {
+    padding: 10px 10px 20px;
+  }
 
-.page-exit-active {
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 300ms, transform 300ms;
+  .page-title {
+    font-size: 1.35rem !important;
+  }
+
+  .glass-card {
+    border-radius: 12px;
+  }
+
+  .client-table {
+    font-size: 0.85rem;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

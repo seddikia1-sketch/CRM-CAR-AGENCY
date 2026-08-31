@@ -7,7 +7,12 @@ import {
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+  mobileOpen?: boolean;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const { user, signOut } = useAuth();
 
   const navItems = [
@@ -40,6 +45,7 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 to={item.path}
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                onClick={() => onNavigate?.()}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span className="nav-label">{item.label}</span>
@@ -70,6 +76,9 @@ export const Sidebar: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
             }}
           >
             <LogOut size={18} />
