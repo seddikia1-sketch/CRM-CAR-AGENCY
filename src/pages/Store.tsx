@@ -99,7 +99,7 @@ export const Store: React.FC = () => {
         borderBottom: '1px solid var(--border-color)', padding: '12px 16px',
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link to="/home" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit' }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12, background: 'var(--accent-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -110,8 +110,9 @@ export const Store: React.FC = () => {
               <div style={{ fontWeight: 700 }}>متجر السيارات</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{office.officeName}</div>
             </div>
-          </div>
+          </Link>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link to="/home" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>الرئيسية</Link>
             <a href={`tel:${office.phone}`} style={{
               display: 'flex', alignItems: 'center', gap: 6, background: 'transparent',
               color: 'var(--text-primary)', padding: '8px 12px', borderRadius: 10, fontWeight: 600,
@@ -261,7 +262,10 @@ export const Store: React.FC = () => {
             </div>
             <div>
               {office.note}
-              <br />للمتابعة الإدارية: <Link to="/login">دخول النظام</Link>
+              <br />
+              <Link to="/home">الصفحة الرئيسية</Link>
+              {' · '}
+              <Link to="/login">دخول النظام</Link>
             </div>
           </div>
         </footer>
