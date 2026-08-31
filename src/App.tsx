@@ -13,6 +13,7 @@ import { Messages } from './pages/Messages';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Store } from './pages/Store';
+import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AppProvider } from './providers/AppProvider';
@@ -29,12 +30,13 @@ function App() {
         <HashRouter>
           <OfflineBanner />
           <Routes>
-            {/* متجر عام للزبائن — بدون تسجيل دخول */}
+            {/* صفحات عامة */}
+            <Route path="/home" element={<Landing />} />
             <Route path="/store" element={<Store />} />
-
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
+            {/* نظام المكتب — محمي */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Dashboard />} />
@@ -51,7 +53,8 @@ function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/store" replace />} />
+            {/* الصفحة الافتراضية للزوار */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
           <InstallPrompt />
         </HashRouter>
