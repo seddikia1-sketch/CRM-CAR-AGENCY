@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   SERVICE_PROFILES: 'crm_service_profiles',
   MAINTENANCE_RECORDS: 'crm_maintenance_records',
   BOOKINGS: 'crm_bookings',
+  PAYMENTS: 'crm_payments',
 } as const;
 
 export const storage = {

@@ -13,7 +13,6 @@ export function formatCurrency(value: number): string {
 
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
-  // رقم جزائري
   if (digits.length === 10 && digits.startsWith('0')) {
     return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7)}`;
   }
@@ -61,16 +60,20 @@ export function formatRelativeTime(dateStr: string): string {
   return formatDate(dateStr);
 }
 
-export function getWhatsAppLink(phone: string): string {
+/** رابط واتساب — مع رسالة اختيارية */
+export function getWhatsAppLink(phone: string, message?: string): string {
   const digits = phone.replace(/\D/g, '');
-  // رقم الجزائر +213
   let fullNumber = digits;
   if (digits.startsWith('0')) {
     fullNumber = '213' + digits.slice(1);
   } else if (!digits.startsWith('213')) {
     fullNumber = '213' + digits;
   }
-  return `https://wa.me/${fullNumber}`;
+  const base = `https://wa.me/${fullNumber}`;
+  if (message && message.trim()) {
+    return `${base}?text=${encodeURIComponent(message.trim())}`;
+  }
+  return base;
 }
 
 export function daysSince(dateStr: string): number {
@@ -80,7 +83,6 @@ export function daysSince(dateStr: string): number {
 }
 
 export function phoneMask(value: string): string {
-  // قناع بسيط للأرقام الجزائرية
   const digits = value.replace(/\D/g, '').slice(0, 10);
   if (digits.length <= 2) return digits;
   if (digits.length <= 5) return `${digits.slice(0, 2)} ${digits.slice(2)}`;

@@ -8,6 +8,8 @@ import { Inventory } from './pages/Inventory';
 import { SpareParts } from './pages/SpareParts';
 import { Maintenance } from './pages/Maintenance';
 import { Bookings } from './pages/Bookings';
+import { Payments } from './pages/Payments';
+import { Messages } from './pages/Messages';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
@@ -35,6 +37,8 @@ function App() {
                 <Route path="spare-parts" element={<SpareParts />} />
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="bookings" element={<Bookings />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="messages" element={<Messages />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="settings" element={<Settings />} />
               </Route>

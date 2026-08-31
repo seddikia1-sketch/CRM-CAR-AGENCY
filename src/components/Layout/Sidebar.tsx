@@ -1,6 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Filter, Settings, Car, LogOut, Package, BarChart3, Wrench, CalendarClock, Calendar } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Filter, Settings, Car, LogOut,
+  Package, BarChart3, Wrench, CalendarClock, Calendar, Wallet, MessageCircle,
+} from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
 
@@ -15,6 +18,8 @@ export const Sidebar: React.FC = () => {
     { path: '/spare-parts', label: 'قطع الغيار', icon: <Wrench size={20} /> },
     { path: '/maintenance', label: 'الصيانة الدورية', icon: <CalendarClock size={20} /> },
     { path: '/bookings', label: 'الحجوزات', icon: <Calendar size={20} /> },
+    { path: '/payments', label: 'الدفعات', icon: <Wallet size={20} /> },
+    { path: '/messages', label: 'رسائل واتساب', icon: <MessageCircle size={20} /> },
     { path: '/reports', label: 'تقارير الأرباح', icon: <BarChart3 size={20} /> },
     { path: '/settings', label: 'الإعدادات', icon: <Settings size={20} /> },
   ];
@@ -65,7 +70,6 @@ export const Sidebar: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s',
             }}
           >
             <LogOut size={18} />
