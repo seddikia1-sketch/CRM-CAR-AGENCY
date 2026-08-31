@@ -3,6 +3,7 @@ import { FunnelStage } from '../types';
 import type { Client, ClientFormData, ActivityLog, DashboardStats, LeadSource } from '../types';
 import { DEFAULT_FOLLOW_UP_DAYS, FUNNEL_STAGES } from '../utils/constants';
 import { storage, STORAGE_KEYS } from '../services/storage';
+import { digitsOnly } from '../utils/formatters';
 
 function generateId() {
   return crypto.randomUUID();
@@ -16,12 +17,10 @@ export function useClients() {
 
   const load = useCallback(() => {
     try {
-      const storedClients = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
-      const storedActivities = storage.get<ActivityLog[]>(STORAGE_KEYS.ACTIVITIES) || [];
-      setClients(storedClients);
-      setActivities(storedActivities);
+      setClients(storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || []);
+      setActivities(storage.get<ActivityLog[]>(STORAGE_KEYS.ACTIVITIES) || []);
       setError(null);
-    } catch (e) {
+    } catch {
       setError('تعذر تحميل العملاء');
     } finally {
       setLoading(false);
@@ -65,16 +64,36 @@ export function useClients() {
     [saveActivities]
   );
 
+  const findByPhone = useCallback((phone: string, excludeId?: string) => {
+    const d = digitsOnly(phone);
+    if (d.length < 8) return null;
+    const list = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+    return (
+      list.find((c) => {
+        if (excludeId && c.id === excludeId) return false;
+        const cd = digitsOnly(c.phone);
+        return cd === d || cd.endsWith(d.slice(-9)) || d.endsWith(cd.slice(-9));
+      }) || null
+    );
+  }, []);
+
   const addClient = useCallback(
     async (data: ClientFormData) => {
       if (!data.name?.trim() || !data.phone?.trim()) {
         setError('الاسم ورقم الهاتف مطلوبان');
-        return null;
+        throw new Error('الاسم ورقم الهاتف مطلوبان');
+      }
+
+      const dup = findByPhone(data.phone);
+      if (dup) {
+        const ok = window.confirm(
+          `تنبيه: يوجد عميل بنفس الرقم تقريباً («${dup.name}»).\nهل تريد الإضافة رغم ذلك؟`
+        );
+        if (!ok) return null;
       }
 
       const now = new Date().toISOString();
       const id = generateId();
-
       const client: Client = {
         id,
         customerId: id,
@@ -111,7 +130,7 @@ export function useClients() {
       setError(null);
       return client;
     },
-    [saveClients, addActivity]
+    [saveClients, addActivity, findByPhone]
   );
 
   const updateClient = useCallback(
@@ -140,11 +159,7 @@ export function useClients() {
           toStage: data.funnelStage,
         });
       } else {
-        addActivity({
-          clientId: id,
-          clientName: existing.name,
-          action: 'updated',
-        });
+        addActivity({ clientId: id, clientName: existing.name, action: 'updated' });
       }
 
       return updated;
@@ -158,11 +173,7 @@ export function useClients() {
       const existing = current.find((c) => c.id === id);
       saveClients(current.filter((c) => c.id !== id));
       if (existing) {
-        addActivity({
-          clientId: id,
-          clientName: existing.name,
-          action: 'deleted',
-        });
+        addActivity({ clientId: id, clientName: existing.name, action: 'deleted' });
       }
       return true;
     },
@@ -170,9 +181,7 @@ export function useClients() {
   );
 
   const moveToStage = useCallback(
-    async (id: string, stage: FunnelStage) => {
-      return updateClient(id, { funnelStage: stage });
-    },
+    async (id: string, stage: FunnelStage) => updateClient(id, { funnelStage: stage }),
     [updateClient]
   );
 
@@ -196,11 +205,8 @@ export function useClients() {
       grouped[s.key] = [];
     });
     clients.forEach((c) => {
-      if (grouped[c.funnelStage]) {
-        grouped[c.funnelStage].push(c);
-      } else {
-        grouped[FunnelStage.FIRST_CONTACT].push(c);
-      }
+      if (grouped[c.funnelStage]) grouped[c.funnelStage].push(c);
+      else grouped[FunnelStage.FIRST_CONTACT].push(c);
     });
     return grouped;
   }, [clients]);
@@ -230,13 +236,12 @@ export function useClients() {
       closedClients.length + clients.filter((c) => c.funnelStage === FunnelStage.LOST).length;
     const conversionRate =
       totalWithOutcome > 0 ? (closedClients.length / totalWithOutcome) * 100 : 0;
-    const totalNegotiationValue = activeClients.reduce((sum, c) => sum + (c.estimatedValue || 0), 0);
 
     return {
       totalClients: clients.length,
       activeClients: activeClients.length,
       conversionRate,
-      totalNegotiationValue,
+      totalNegotiationValue: activeClients.reduce((sum, c) => sum + (c.estimatedValue || 0), 0),
       clientsByStage,
       clientsBySource: clientsBySource as Record<string, number>,
       recentActivities: activities.slice(0, 15),
@@ -252,10 +257,12 @@ export function useClients() {
       let result = clients;
       if (query.trim()) {
         const q = query.toLowerCase();
+        const qd = digitsOnly(query);
         result = result.filter(
           (c) =>
             c.name.toLowerCase().includes(q) ||
             c.phone.includes(q) ||
+            (qd && digitsOnly(c.phone).includes(qd)) ||
             (c.vehicleInterest || '').toLowerCase().includes(q) ||
             (c.brand || '').toLowerCase().includes(q) ||
             (c.model || '').toLowerCase().includes(q) ||
@@ -282,6 +289,7 @@ export function useClients() {
     getClientsByStage,
     getStats,
     searchClients,
+    findByPhone,
     refresh: load,
   };
 }

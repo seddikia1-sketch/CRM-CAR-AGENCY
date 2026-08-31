@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Filter, Settings, Car, LogOut,
-  Package, BarChart3, Wrench, CalendarClock, Calendar, Wallet, MessageCircle,
+  Package, BarChart3, Wrench, CalendarClock, Calendar, Wallet, MessageCircle, Store,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
@@ -29,6 +29,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
     { path: '/settings', label: 'الإعدادات', icon: <Settings size={20} /> },
   ];
 
+  const storeUrl = `${window.location.pathname}#/store`;
+
   return (
     <aside className="sidebar glass">
       <div className="sidebar-header">
@@ -52,14 +54,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               </NavLink>
             </li>
           ))}
+          <li className="nav-item">
+            <a
+              href={storeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="nav-link"
+              onClick={() => onNavigate?.()}
+            >
+              <span className="nav-icon"><Store size={20} /></span>
+              <span className="nav-label">المتجر (زبائن)</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
       <div className="sidebar-footer">
         <div className="user-profile">
-          <div className="user-avatar">
-            {user?.email?.[0].toUpperCase() || 'U'}
-          </div>
+          <div className="user-avatar">{user?.email?.[0].toUpperCase() || 'U'}</div>
           <div className="user-info">
             <p className="user-name">{user?.email?.split('@')[0] || 'مستخدم'}</p>
             <p className="user-role">مكتب سيارات صينية</p>
@@ -69,16 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
             onClick={() => signOut()}
             title="تسجيل الخروج"
             style={{
-              marginLeft: 'auto',
-              color: 'var(--text-secondary)',
-              padding: 'var(--spacing-xs)',
-              borderRadius: 'var(--radius-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
+              marginLeft: 'auto', color: 'var(--text-secondary)', padding: 'var(--spacing-xs)',
+              borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer',
             }}
           >
             <LogOut size={18} />
