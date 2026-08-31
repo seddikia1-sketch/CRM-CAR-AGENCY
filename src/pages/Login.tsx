@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Car, AlertCircle } from 'lucide-react';
+import { Car, AlertCircle, Store as StoreIcon } from 'lucide-react';
 import { supabase, isLocalMode } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { loginSchema } from '../lib/validators';
@@ -26,7 +26,6 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      // وضع محلي — دخول مباشر بدون Supabase
       if (isLocalMode || local) {
         if (!email.trim()) {
           setError('أدخل البريد الإلكتروني');
@@ -83,6 +82,11 @@ export const Login: React.FC = () => {
         <h2 style={{ fontSize: '2rem', marginBottom: 'var(--spacing-xs)' }}>دخول إلى نظام الـ CRM</h2>
         <p style={{ color: 'var(--text-secondary)' }}>
           أو <Link to="/signup" style={{ color: 'var(--accent-primary)' }}>إنشاء حساب جديد</Link>
+        </p>
+        <p style={{ marginTop: 12 }}>
+          <Link to="/store" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent-success)' }}>
+            <StoreIcon size={16} /> زيارة المتجر الإلكتروني للزبائن
+          </Link>
         </p>
         {(isLocalMode || local) && (
           <p style={{

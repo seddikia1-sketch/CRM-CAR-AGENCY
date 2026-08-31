@@ -12,6 +12,7 @@ import { Payments } from './pages/Payments';
 import { Messages } from './pages/Messages';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Store } from './pages/Store';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AppProvider } from './providers/AppProvider';
@@ -28,6 +29,9 @@ function App() {
         <HashRouter>
           <OfflineBanner />
           <Routes>
+            {/* متجر عام للزبائن — بدون تسجيل دخول */}
+            <Route path="/store" element={<Store />} />
+
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
@@ -47,7 +51,7 @@ function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/store" replace />} />
           </Routes>
           <InstallPrompt />
         </HashRouter>

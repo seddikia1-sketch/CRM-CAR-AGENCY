@@ -1,0 +1,182 @@
+/** كتالوج افتراضي للعرض في المتجر الإلكتروني (سيارات صينية للسوق الجزائري) */
+
+export interface CatalogCar {
+  id: string;
+  brand: string;
+  model: string;
+  year: number;
+  price: number;
+  oldPrice?: number;
+  mileage: number;
+  color: string;
+  condition: 'new' | 'under_3_years';
+  status: 'available' | 'in_transit' | 'customs' | 'reserved';
+  features: string[];
+  badge?: string;
+  shippingDate?: string;
+  description: string;
+}
+
+export interface StoreOffer {
+  id: string;
+  title: string;
+  subtitle: string;
+  discountLabel: string;
+  carLabel: string;
+  priceFrom: number;
+  validUntil: string;
+  active: boolean;
+  highlight: string;
+}
+
+export const DEFAULT_CATALOG: CatalogCar[] = [
+  {
+    id: 'cat-1',
+    brand: 'Chery',
+    model: 'Tiggo 8 Pro',
+    year: 2025,
+    price: 4850000,
+    oldPrice: 5100000,
+    mileage: 0,
+    color: 'أبيض لؤلؤي',
+    condition: 'new',
+    status: 'available',
+    features: ['7 مقاعد', 'بانورامك', 'ADAS', 'شاشة 12.3'],
+    badge: 'عرض خاص',
+    description: 'دفع رباعي عائلي، جاهز للتسليم من المخزون.',
+  },
+  {
+    id: 'cat-2',
+    brand: 'Geely',
+    model: 'Coolray',
+    year: 2025,
+    price: 3200000,
+    mileage: 0,
+    color: 'رمادي معدني',
+    condition: 'new',
+    status: 'available',
+    features: ['توربو', 'سقف بانورامي', 'كاميرا 360'],
+    badge: 'الأكثر طلباً',
+    description: 'SUV مدمج رياضي مناسب للمدينة والطريق.',
+  },
+  {
+    id: 'cat-3',
+    brand: 'BYD',
+    model: 'Song Plus DM-i',
+    year: 2025,
+    price: 5200000,
+    mileage: 0,
+    color: 'أسود',
+    condition: 'new',
+    status: 'available',
+    features: ['هجين', 'مدى طويل', 'شحن سريع'],
+    badge: 'هجين',
+    description: 'تقنية هجينة اقتصادية في استهلاك الوقود.',
+  },
+  {
+    id: 'cat-4',
+    brand: 'Haval',
+    model: 'Jolion',
+    year: 2024,
+    price: 2950000,
+    mileage: 12000,
+    color: 'أزرق',
+    condition: 'under_3_years',
+    status: 'available',
+    features: ['أقل من 3 سنوات', 'ضمان', 'صيانة دورية'],
+    description: 'مستعملة بحالة ممتازة، استيراد حديث.',
+  },
+  {
+    id: 'cat-5',
+    brand: 'Changan',
+    model: 'CS55 Plus',
+    year: 2025,
+    price: 3600000,
+    mileage: 0,
+    color: 'فضي',
+    condition: 'new',
+    status: 'in_transit',
+    features: ['مشحونة', 'وصول قريب', 'حجز مسبق'],
+    badge: 'في الطريق',
+    shippingDate: '2026-09-20',
+    description: 'تم الشحن من الصين — احجز الآن قبل الوصول.',
+  },
+  {
+    id: 'cat-6',
+    brand: 'MG',
+    model: 'HS',
+    year: 2025,
+    price: 4100000,
+    mileage: 0,
+    color: 'أحمر',
+    condition: 'new',
+    status: 'in_transit',
+    features: ['مشحونة', 'فاخرة', 'محرك 1.5T'],
+    badge: 'مشحونة',
+    shippingDate: '2026-09-28',
+    description: 'دفعة جديدة على الطريق نحو ميناء الجزائر.',
+  },
+  {
+    id: 'cat-7',
+    brand: 'JAC',
+    model: 'JS6',
+    year: 2025,
+    price: 3450000,
+    mileage: 0,
+    color: 'أبيض',
+    condition: 'new',
+    status: 'customs',
+    features: ['تحت الجمرك', 'إجراءات جارية'],
+    badge: 'جمرك',
+    description: 'وصلت الميناء وتحت إجراءات التخليص الجمركي.',
+  },
+  {
+    id: 'cat-8',
+    brand: 'Great Wall',
+    model: 'Poer',
+    year: 2025,
+    price: 4500000,
+    mileage: 0,
+    color: 'أسود',
+    condition: 'new',
+    status: 'available',
+    features: ['بيك أب', 'دفع رباعي', 'حمولة عالية'],
+    description: 'بيك أب للعمل والاستخدام الشاق.',
+  },
+];
+
+export const DEFAULT_OFFERS: StoreOffer[] = [
+  {
+    id: 'off-1',
+    title: 'عرض الدخول المدرسي',
+    subtitle: 'خصم على سيارات العائلة',
+    discountLabel: 'وفر حتى 250.000 دج',
+    carLabel: 'Chery Tiggo 8 Pro',
+    priceFrom: 4850000,
+    validUntil: '2026-09-30',
+    active: true,
+    highlight: 'تسليم فوري + هدايا',
+  },
+  {
+    id: 'off-2',
+    title: 'احجز قبل الوصول',
+    subtitle: 'سيارات مشحونة بأسعار تشجيعية',
+    discountLabel: 'عربون مخفّض',
+    carLabel: 'Changan CS55 Plus / MG HS',
+    priceFrom: 3600000,
+    validUntil: '2026-10-15',
+    active: true,
+    highlight: 'أولوية الاستلام عند الوصول',
+  },
+  {
+    id: 'off-3',
+    title: 'عرض الهجين',
+    subtitle: 'توفير في الوقود مع BYD',
+    discountLabel: 'استشارة مجانية',
+    carLabel: 'BYD Song Plus DM-i',
+    priceFrom: 5200000,
+    validUntil: '2026-10-01',
+    active: true,
+    highlight: 'تمويل ميسر حسب الاتفاق',
+  },
+];
