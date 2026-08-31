@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Ship, Tag, MessageCircle, Search, Phone, MapPin } from 'lucide-react';
+import { Car, Ship, Tag, MessageCircle, Search, Phone, MapPin, Play, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DEFAULT_CATALOG, DEFAULT_OFFERS, type CatalogCar } from '../data/storeCatalog';
 import { formatCurrency, getWhatsAppLink, formatPhone } from '../utils/formatters';
 import { storage, STORAGE_KEYS } from '../services/storage';
 import { getOfficeSettings } from '../services/officeSettings';
+import { toEmbedVideoUrl, isDirectVideo } from '../utils/media';
 import type { Vehicle } from '../types';
 
 function vehicleToCatalog(v: Vehicle): CatalogCar {
@@ -40,6 +41,8 @@ function vehicleToCatalog(v: Vehicle): CatalogCar {
         : v.status === 'reserved'
         ? 'محجوزة'
         : undefined,
+    images: Array.isArray(v.images) ? v.images : [],
+    videoUrl: v.videoUrl || '',
   };
 }
 
@@ -65,6 +68,8 @@ export const Store: React.FC = () => {
   const [tab, setTab] = useState<'all' | 'available' | 'shipped' | 'offers'>('all');
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
+  const [selected, setSelected] = useState<CatalogCar | null>(null);
+  const [slide, setSlide] = useState(0);
 
   const brands = useMemo(() => Array.from(new Set(cars.map((c) => c.brand))).sort(), [cars]);
   const available = cars.filter((c) => c.status === 'available' || c.status === 'reserved');
@@ -89,6 +94,14 @@ export const Store: React.FC = () => {
     const msg = `السلام عليكم،\nأريد الاستفسار عن السيارة:\n${c.brand} ${c.model} ${c.year}\nالسعر المعروض: ${c.price.toLocaleString('ar-DZ')} دج\nهل ما زالت متوفرة؟`;
     return getWhatsAppLink(office.whatsapp, msg);
   };
+
+  const openCar = (c: CatalogCar) => {
+    setSelected(c);
+    setSlide(0);
+  };
+
+  const images = selected?.images?.filter(Boolean) || [];
+  const embed = selected?.videoUrl ? toEmbedVideoUrl(selected.videoUrl) : null;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
@@ -137,7 +150,7 @@ export const Store: React.FC = () => {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', marginBottom: 8 }}>سيارات صينية — متوفرة ومشحونة</h1>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 560, lineHeight: 1.6 }}>
-            تصفّح المخزون، السيارات في الطريق، وأحدث العروض. تواصل معنا مباشرة.
+            تصفّح بالصور والفيديو، السيارات في الطريق، وأحدث العروض.
           </p>
           <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', fontSize: '0.9rem' }}>
             <span>✅ {available.length} متوفرة</span>
@@ -202,7 +215,6 @@ export const Store: React.FC = () => {
                   من {formatCurrency(o.priceFrom)}
                 </div>
                 <div style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--accent-warning)' }}>{o.highlight}</div>
-                <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ساري حتى {o.validUntil}</div>
                 <a href={getWhatsAppLink(office.whatsapp, `السلام عليكم، مهتم بعرض: ${o.title} — ${o.carLabel}`)} target="_blank" rel="noreferrer"
                   style={{ display: 'block', textAlign: 'center', marginTop: 14, background: '#25D366', color: '#fff', padding: '10px', borderRadius: 10, fontWeight: 700 }}>
                   اطلب العرض عبر واتساب
@@ -219,63 +231,86 @@ export const Store: React.FC = () => {
                 لا توجد سيارات مطابقة. تواصل معنا عبر واتساب.
               </div>
             )}
-            {filtered.map((c) => (
-              <article key={c.id} className="glass-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{
-                  height: 120,
-                  background: c.status === 'in_transit' || c.status === 'customs'
-                    ? 'linear-gradient(135deg, #1e3a5f, #0f172a)'
-                    : 'linear-gradient(135deg, #2a1f5c, #12121a)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-                }}>
-                  {c.status === 'in_transit' || c.status === 'customs'
-                    ? <Ship size={48} color="rgba(255,255,255,0.35)" />
-                    : <Car size={48} color="rgba(255,255,255,0.35)" />}
-                  {c.badge && (
-                    <span style={{
-                      position: 'absolute', top: 10, right: 10,
-                      background: c.status === 'available' ? '#22c55e' : c.status === 'reserved' ? '#f0932b' : '#3b82f6',
-                      color: '#fff', fontSize: '0.72rem', fontWeight: 700, padding: '4px 8px', borderRadius: 8,
-                    }}>{c.badge}</span>
-                  )}
-                </div>
-                <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>{c.brand} {c.model}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {c.year} · {c.color || '—'} · {c.mileage ? `${c.mileage.toLocaleString()} كم` : 'جديدة'}
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--accent-info)' }}>
-                    {statusLabel[c.status] || c.status}
-                    {c.shippingDate ? ` · شحن: ${c.shippingDate}` : ''}
-                  </div>
-                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {c.features.slice(0, 4).map((f) => (
-                      <span key={f} style={{
-                        fontSize: '0.72rem', padding: '3px 8px', borderRadius: 999,
-                        background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-color)',
-                      }}>{f}</span>
-                    ))}
-                  </div>
-                  <p style={{ fontSize: '0.82rem', marginTop: 10, lineHeight: 1.5, flex: 1 }}>{c.description}</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-success)' }}>
-                      {c.price ? formatCurrency(c.price) : 'حسب الاتفاق'}
-                    </span>
-                    {c.oldPrice && c.oldPrice > c.price && (
-                      <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                        {formatCurrency(c.oldPrice)}
+            {filtered.map((c) => {
+              const cover = c.images?.[0];
+              const hasVideo = !!c.videoUrl;
+              return (
+                <article
+                  key={c.id}
+                  className="glass-card"
+                  style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+                  onClick={() => openCar(c)}
+                >
+                  <div style={{
+                    height: 160, position: 'relative',
+                    background: cover
+                      ? undefined
+                      : c.status === 'in_transit' || c.status === 'customs'
+                      ? 'linear-gradient(135deg, #1e3a5f, #0f172a)'
+                      : 'linear-gradient(135deg, #2a1f5c, #12121a)',
+                  }}>
+                    {cover ? (
+                      <img src={cover} alt={`${c.brand} ${c.model}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                    ) : (
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {c.status === 'in_transit' || c.status === 'customs'
+                          ? <Ship size={48} color="rgba(255,255,255,0.35)" />
+                          : <Car size={48} color="rgba(255,255,255,0.35)" />}
+                      </div>
+                    )}
+                    {c.badge && (
+                      <span style={{
+                        position: 'absolute', top: 10, right: 10,
+                        background: c.status === 'available' ? '#22c55e' : c.status === 'reserved' ? '#f0932b' : '#3b82f6',
+                        color: '#fff', fontSize: '0.72rem', fontWeight: 700, padding: '4px 8px', borderRadius: 8,
+                      }}>{c.badge}</span>
+                    )}
+                    {hasVideo && (
+                      <span style={{
+                        position: 'absolute', bottom: 10, left: 10,
+                        background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '0.72rem',
+                        padding: '4px 8px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4,
+                      }}>
+                        <Play size={12} /> فيديو
+                      </span>
+                    )}
+                    {(c.images?.length || 0) > 1 && (
+                      <span style={{
+                        position: 'absolute', bottom: 10, right: 10,
+                        background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '0.72rem',
+                        padding: '4px 8px', borderRadius: 8,
+                      }}>
+                        {c.images!.length} صور
                       </span>
                     )}
                   </div>
-                  <a href={waForCar(c)} target="_blank" rel="noreferrer" style={{
-                    marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    background: 'var(--accent-primary)', color: '#fff', padding: '10px', borderRadius: 10, fontWeight: 700,
-                  }}>
-                    <MessageCircle size={16} /> استفسر / احجز
-                  </a>
-                </div>
-              </article>
-            ))}
+                  <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>{c.brand} {c.model}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                      {c.year} · {c.color || '—'} · {c.mileage ? `${c.mileage.toLocaleString()} كم` : 'جديدة'}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--accent-info)' }}>
+                      {statusLabel[c.status] || c.status}
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--accent-success)', marginTop: 8 }}>
+                      {c.price ? formatCurrency(c.price) : 'حسب الاتفاق'}
+                    </div>
+                    <a
+                      href={waForCar(c)}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        background: 'var(--accent-primary)', color: '#fff', padding: '10px', borderRadius: 10, fontWeight: 700,
+                      }}
+                    >
+                      <MessageCircle size={16} /> استفسر / احجز
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
 
@@ -303,6 +338,117 @@ export const Store: React.FC = () => {
           </div>
         </footer>
       </div>
+
+      {/* نافذة تفاصيل + معرض */}
+      {selected && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12,
+          }}
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="glass-card"
+            style={{
+              width: 'min(640px, 100%)', maxHeight: '92vh', overflowY: 'auto',
+              padding: 0, position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              style={{
+                position: 'absolute', top: 10, left: 10, zIndex: 2,
+                background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: '50%',
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{ position: 'relative', background: '#000', minHeight: 200 }}>
+              {images.length > 0 ? (
+                <>
+                  <img
+                    src={images[slide % images.length]}
+                    alt=""
+                    style={{ width: '100%', maxHeight: 320, objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                  />
+                  {images.length > 1 && (
+                    <>
+                      <button type="button" onClick={() => setSlide((s) => (s - 1 + images.length) % images.length)}
+                        style={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', borderRadius: '50%', width: 36, height: 36 }}>
+                        <ChevronRight size={20} />
+                      </button>
+                      <button type="button" onClick={() => setSlide((s) => (s + 1) % images.length)}
+                        style={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', color: '#fff', borderRadius: '50%', width: 36, height: 36 }}>
+                        <ChevronLeft size={20} />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Car size={48} color="rgba(255,255,255,0.3)" />
+                </div>
+              )}
+            </div>
+
+            {images.length > 1 && (
+              <div style={{ display: 'flex', gap: 6, padding: '8px 12px', overflowX: 'auto' }}>
+                {images.map((src, i) => (
+                  <button key={i} type="button" onClick={() => setSlide(i)} style={{
+                    border: i === slide % images.length ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                    borderRadius: 6, padding: 0, width: 56, height: 44, overflow: 'hidden', flexShrink: 0,
+                  }}>
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {embed && (
+              <div style={{ padding: '0 12px 12px' }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Play size={16} /> فيديو السيارة
+                </div>
+                {isDirectVideo(embed) ? (
+                  <video src={embed} controls playsInline style={{ width: '100%', borderRadius: 10, maxHeight: 280 }} />
+                ) : (
+                  <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 10, overflow: 'hidden' }}>
+                    <iframe
+                      src={embed}
+                      title="video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ padding: 16 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{selected.brand} {selected.model}</h2>
+              <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
+                {selected.year} · {selected.color || '—'} · {selected.mileage ? `${selected.mileage.toLocaleString()} كم` : 'جديدة'}
+              </p>
+              <p style={{ marginTop: 8, lineHeight: 1.6 }}>{selected.description}</p>
+              <div style={{ marginTop: 10, fontWeight: 800, fontSize: '1.3rem', color: 'var(--accent-success)' }}>
+                {selected.price ? formatCurrency(selected.price) : 'حسب الاتفاق'}
+              </div>
+              <a href={waForCar(selected)} target="_blank" rel="noreferrer" style={{
+                marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: '#25D366', color: '#fff', padding: '12px', borderRadius: 10, fontWeight: 700,
+              }}>
+                <MessageCircle size={18} /> تواصل عبر واتساب
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
