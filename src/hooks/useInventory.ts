@@ -8,15 +8,23 @@ function generateId() {
 
 const ARABIC_MONTHS = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
 ];
+
+function normalizeVehicle(v: Vehicle): Vehicle {
+  return {
+    ...v,
+    images: Array.isArray(v.images) ? v.images : [],
+    videoUrl: v.videoUrl || '',
+  };
+}
 
 export function useInventory() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    const data = storage.get<Vehicle[]>(STORAGE_KEYS.INVENTORY) || [];
+    const data = (storage.get<Vehicle[]>(STORAGE_KEYS.INVENTORY) || []).map(normalizeVehicle);
     setVehicles(data);
     setLoading(false);
   }, []);
@@ -35,11 +43,12 @@ export function useInventory() {
     const vehicle: Vehicle = {
       id: generateId(),
       ...data,
+      images: data.images || [],
+      videoUrl: data.videoUrl || '',
       createdAt: now,
       updatedAt: now,
     };
-    const updated = [vehicle, ...vehicles];
-    save(updated);
+    save([vehicle, ...vehicles]);
     return vehicle;
   }, [vehicles, save]);
 
@@ -51,11 +60,9 @@ export function useInventory() {
   }, [vehicles, save]);
 
   const deleteVehicle = useCallback((id: string) => {
-    const updated = vehicles.filter((v) => v.id !== id);
-    save(updated);
+    save(vehicles.filter((v) => v.id !== id));
   }, [vehicles, save]);
 
-  /** ربط السيارة بعميل وتسجيلها كمباعة */
   const sellVehicle = useCallback((
     vehicleId: string,
     clientId: string,
@@ -101,7 +108,6 @@ export function useInventory() {
     return result;
   }, [vehicles]);
 
-  /** تقارير الأرباح الشهرية */
   const getMonthlyProfits = useCallback((): MonthlyProfit[] => {
     const sold = vehicles.filter((v) => v.status === 'sold' && v.soldAt);
     const map = new Map<string, MonthlyProfit>();

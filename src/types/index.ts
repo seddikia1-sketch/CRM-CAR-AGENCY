@@ -104,6 +104,10 @@ export interface Vehicle {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
+  /** روابط أو data-URL للصور */
+  images: string[];
+  /** رابط فيديو (يوتيوب / ملف mp4 / درايف...) */
+  videoUrl: string;
   soldToClientId?: string;
   soldToClientName?: string;
   soldAt?: string;
@@ -127,6 +131,8 @@ export interface VehicleFormData {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
+  images: string[];
+  videoUrl: string;
 }
 
 export const PartCategory = {
@@ -291,8 +297,6 @@ export interface MaintenanceRecordFormData {
   cost: number;
   notes: string;
 }
-
-// ========== الحجوزات والمواعيد (من أفكار Autorizz) ==========
 
 export const BookingType = {
   SHOWROOM_VISIT: 'showroom_visit',
