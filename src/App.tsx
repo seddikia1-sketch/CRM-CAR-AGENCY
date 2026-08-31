@@ -17,6 +17,8 @@ import { Signup } from './pages/Signup';
 import { AppProvider } from './providers/AppProvider';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { ErrorBoundary } from './components/Common/ErrorBoundary';
+import { InstallPrompt } from './components/Common/InstallPrompt';
+import { OfflineBanner } from './components/Common/OfflineBanner';
 import './App.css';
 
 function App() {
@@ -24,6 +26,7 @@ function App() {
     <ErrorBoundary>
       <AppProvider>
         <HashRouter>
+          <OfflineBanner />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
@@ -46,6 +49,7 @@ function App() {
 
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+          <InstallPrompt />
         </HashRouter>
       </AppProvider>
     </ErrorBoundary>
