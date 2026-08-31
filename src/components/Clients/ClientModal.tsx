@@ -10,7 +10,7 @@ import { phoneMask } from '../../utils/formatters';
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ClientFormData) => void;
+  onSave: (data: ClientFormData) => void | Promise<void>;
   initialData?: Partial<ClientFormData>;
   title?: string;
 }
@@ -43,10 +43,14 @@ export const ClientModal: React.FC<ClientModalProps> = ({
   title = 'عميل جديد',
 }) => {
   const [formData, setFormData] = useState<ClientFormData>(defaultData);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setFormData(initialData ? { ...defaultData, ...initialData } : defaultData);
+      setFormError(null);
+      setSaving(false);
     }
   }, [isOpen, initialData]);
 
@@ -62,10 +66,28 @@ export const ClientModal: React.FC<ClientModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setFormError(null);
+
+    if (!formData.name.trim()) {
+      setFormError('يرجى إدخال اسم العميل');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length < 8) {
+      setFormError('يرجى إدخال رقم هاتف صحيح');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch {
+      setFormError('حدث خطأ أثناء الحفظ. حاول مرة أخرى.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -76,13 +98,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({
       maxWidth="720px"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>إلغاء</Button>
-          <Button variant="primary" onClick={handleSubmit}>حفظ</Button>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>إلغاء</Button>
+          <Button variant="primary" onClick={() => handleSubmit()} disabled={saving}>
+            {saving ? 'جاري الحفظ...' : 'حفظ'}
+          </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="flex-col gap-md" style={{ display: 'flex' }}>
-        {/* بيانات العميل */}
+        {formError && (
+          <div style={{
+            background: 'rgba(225, 112, 85, 0.12)',
+            border: '1px solid var(--accent-danger)',
+            color: 'var(--accent-danger)',
+            padding: '10px 12px',
+            borderRadius: 8,
+            fontSize: '0.875rem',
+          }}>
+            {formError}
+          </div>
+        )}
+
         <div className="flex gap-md">
           <Input
             label="الاسم الكامل *"
@@ -120,147 +156,66 @@ export const ClientModal: React.FC<ClientModalProps> = ({
           />
         </div>
 
-        {/* بيانات السيارة الصينية */}
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
           <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>بيانات السيارة الصينية</p>
-          
+
           <div className="flex gap-md">
             <div className="input-wrapper" style={{ flex: 1 }}>
               <label className="input-label">الماركة</label>
-              <select
-                name="brand"
-                className="input-field"
-                value={formData.brand}
-                onChange={handleChange}
-              >
+              <select name="brand" className="input-field" value={formData.brand} onChange={handleChange}>
                 <option value="">اختر الماركة</option>
                 {CHINESE_BRANDS.map((b) => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
             </div>
-            <Input
-              label="الموديل"
-              name="model"
-              value={formData.model}
-              onChange={handleChange}
-              placeholder="Tiggo 8 Pro"
-            />
+            <Input label="الموديل" name="model" value={formData.model} onChange={handleChange} placeholder="Tiggo 8 Pro" />
           </div>
 
           <div className="flex gap-md" style={{ marginTop: '12px' }}>
-            <Input
-              label="سنة الصنع"
-              name="year"
-              type="number"
-              value={formData.year || ''}
-              onChange={handleChange}
-              placeholder="2024"
-            />
-            <Input
-              label="الكيلومترات"
-              name="mileage"
-              type="number"
-              value={formData.mileage || ''}
-              onChange={handleChange}
-              placeholder="0"
-            />
+            <Input label="سنة الصنع" name="year" type="number" value={formData.year || ''} onChange={handleChange} placeholder="2024" />
+            <Input label="الكيلومترات" name="mileage" type="number" value={formData.mileage || ''} onChange={handleChange} placeholder="0" />
             <div className="input-wrapper" style={{ flex: 1 }}>
               <label className="input-label">الحالة</label>
-              <select
-                name="condition"
-                className="input-field"
-                value={formData.condition}
-                onChange={handleChange}
-              >
+              <select name="condition" className="input-field" value={formData.condition} onChange={handleChange}>
                 {VEHICLE_CONDITIONS.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.emoji} {c.label}
-                  </option>
+                  <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>
                 ))}
               </select>
             </div>
           </div>
         </div>
 
-        {/* بيانات الاستيراد */}
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
           <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>بيانات الاستيراد والشحن</p>
-          
+
           <div className="flex gap-md">
-            <Input
-              label="تاريخ الشحن المتوقع"
-              name="shippingDate"
-              type="date"
-              value={formData.shippingDate}
-              onChange={handleChange}
-            />
-            <Input
-              label="رقم الحاوية"
-              name="containerNumber"
-              value={formData.containerNumber}
-              onChange={handleChange}
-              placeholder="MSCU1234567"
-            />
+            <Input label="تاريخ الشحن المتوقع" name="shippingDate" type="date" value={formData.shippingDate} onChange={handleChange} />
+            <Input label="رقم الحاوية" name="containerNumber" value={formData.containerNumber} onChange={handleChange} placeholder="MSCU1234567" />
           </div>
 
           <div className="flex gap-md" style={{ marginTop: '12px' }}>
-            <Input
-              label="حالة الجمرك"
-              name="customsStatus"
-              value={formData.customsStatus}
-              onChange={handleChange}
-              placeholder="في الطريق / تحت التخليص / تم الإفراج"
-            />
-            <Input
-              label="سعر الاستيراد (دج)"
-              name="importPrice"
-              type="number"
-              value={formData.importPrice || ''}
-              onChange={handleChange}
-              placeholder="0"
-            />
-            <Input
-              label="سعر البيع المتوقع (دج)"
-              name="estimatedValue"
-              type="number"
-              value={formData.estimatedValue || ''}
-              onChange={handleChange}
-              placeholder="0"
-            />
+            <Input label="حالة الجمرك" name="customsStatus" value={formData.customsStatus} onChange={handleChange} placeholder="في الطريق / تحت التخليص / تم الإفراج" />
+            <Input label="سعر الاستيراد (دج)" name="importPrice" type="number" value={formData.importPrice || ''} onChange={handleChange} placeholder="0" />
+            <Input label="سعر البيع المتوقع (دج)" name="estimatedValue" type="number" value={formData.estimatedValue || ''} onChange={handleChange} placeholder="0" />
           </div>
         </div>
 
-        {/* مرحلة البيع والمصدر */}
         <div className="flex gap-md" style={{ marginTop: '8px' }}>
           <div className="input-wrapper" style={{ flex: 1 }}>
             <label className="input-label">مرحلة البيع</label>
-            <select
-              name="funnelStage"
-              className="input-field"
-              value={formData.funnelStage}
-              onChange={handleChange}
-            >
+            <select name="funnelStage" className="input-field" value={formData.funnelStage} onChange={handleChange}>
               {FUNNEL_STAGES.map((stage) => (
-                <option key={stage.key} value={stage.key}>
-                  {stage.emoji} {stage.label}
-                </option>
+                <option key={stage.key} value={stage.key}>{stage.emoji} {stage.label}</option>
               ))}
             </select>
           </div>
 
           <div className="input-wrapper" style={{ flex: 1 }}>
             <label className="input-label">مصدر العميل</label>
-            <select
-              name="source"
-              className="input-field"
-              value={formData.source}
-              onChange={handleChange}
-            >
+            <select name="source" className="input-field" value={formData.source} onChange={handleChange}>
               {LEAD_SOURCES.map((source) => (
-                <option key={source.key} value={source.key}>
-                  {source.emoji} {source.label}
-                </option>
+                <option key={source.key} value={source.key}>{source.emoji} {source.label}</option>
               ))}
             </select>
           </div>

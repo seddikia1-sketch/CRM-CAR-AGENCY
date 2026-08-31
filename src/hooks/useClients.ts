@@ -1,325 +1,194 @@
 import { useState, useCallback, useEffect } from 'react';
-import { FunnelStage, VehicleCondition } from '../types';
-import type { Client, ClientFormData, ActivityLog, DashboardStats } from '../types';
-import type { Database } from '../types/database.types';
-import { useApp } from '../providers/AppProvider';
-import { supabase } from '../lib/supabase';
+import { FunnelStage } from '../types';
+import type { Client, ClientFormData, ActivityLog, DashboardStats, LeadSource } from '../types';
 import { DEFAULT_FOLLOW_UP_DAYS, FUNNEL_STAGES } from '../utils/constants';
-import { useRealtime } from './useRealtime';
-import { logger } from '../lib/logger';
-import { clientFormSchema, activitySchema } from '../lib/validators';
+import { storage, STORAGE_KEYS } from '../services/storage';
 
-type DealRow = Database['public']['Tables']['deals']['Row'] & {
-  customers: Database['public']['Tables']['customers']['Row'] | null;
-};
-type ActivityRow = Database['public']['Tables']['activities']['Row'];
-
-// مساعدة لتخزين الحقول الإضافية داخل الملاحظات مؤقتاً (حتى يتم تحديث قاعدة البيانات)
-function encodeExtraFields(data: Partial<ClientFormData>): string {
-  const extra = {
-    brand: data.brand || '',
-    model: data.model || '',
-    year: data.year || 0,
-    mileage: data.mileage || 0,
-    condition: data.condition || VehicleCondition.NEW,
-    shippingDate: data.shippingDate || '',
-    containerNumber: data.containerNumber || '',
-    customsStatus: data.customsStatus || '',
-    importPrice: data.importPrice || 0,
-  };
-  return JSON.stringify(extra);
-}
-
-function decodeExtraFields(notes: string | null): Partial<Client> {
-  try {
-    if (!notes) return {};
-    // إذا كانت الملاحظات تحتوي على JSON في البداية
-    const match = notes.match(/^\{.*\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      return {
-        brand: parsed.brand || '',
-        model: parsed.model || '',
-        year: parsed.year || 0,
-        mileage: parsed.mileage || 0,
-        condition: parsed.condition || VehicleCondition.NEW,
-        shippingDate: parsed.shippingDate || '',
-        containerNumber: parsed.containerNumber || '',
-        customsStatus: parsed.customsStatus || '',
-        importPrice: parsed.importPrice || 0,
-        notes: notes.replace(match[0], '').trim(),
-      };
-    }
-  } catch {
-    // تجاهل
-  }
-  return { notes: notes || '' };
+function generateId() {
+  return crypto.randomUUID();
 }
 
 export function useClients() {
-  const { companyId } = useApp();
   const [clients, setClients] = useState<Client[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClients = useCallback(async () => {
-    if (!companyId) return;
-
+  const load = useCallback(() => {
     try {
-      const { data: deals, error } = await supabase
-        .from('deals')
-        .select('*, customers(*)')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      if (deals) {
-        const mapped: Client[] = (deals as unknown as DealRow[]).map((d) => {
-          const extra = decodeExtraFields(d.customers?.notes || null);
-          return {
-            id: d.id,
-            customerId: d.customers?.id || '',
-            name: d.customers?.name || 'بدون اسم',
-            phone: d.customers?.phone || '',
-            email: d.customers?.email || '',
-            vehicleInterest: d.vehicle_interest || d.title || '',
-            brand: extra.brand || '',
-            model: extra.model || '',
-            year: extra.year || 0,
-            mileage: extra.mileage || 0,
-            condition: extra.condition || VehicleCondition.NEW,
-            shippingDate: extra.shippingDate || '',
-            containerNumber: extra.containerNumber || '',
-            customsStatus: extra.customsStatus || '',
-            importPrice: extra.importPrice || 0,
-            estimatedValue: d.estimated_value || 0,
-            funnelStage: d.stage as FunnelStage,
-            source: (d.customers?.source as import('../types').LeadSource) || 'other',
-            notes: extra.notes || d.customers?.notes || '',
-            createdAt: d.created_at,
-            updatedAt: d.updated_at,
-            lastContactAt: d.updated_at,
-          };
-        });
-        setClients(mapped);
-      }
-    } catch (err: unknown) {
-      logger.error('Error fetching clients:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    }
-  }, [companyId]);
-
-  const fetchActivities = useCallback(async () => {
-    if (!companyId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
-        .limit(200);
-
-      if (error) throw error;
-
-      if (data) {
-        const mapped: ActivityLog[] = (data as ActivityRow[]).map((a) => {
-          const details = a.details as Record<string, any> | null;
-          return {
-            id: a.id,
-            clientId: a.deal_id || a.customer_id || '',
-            clientName: details?.clientName || 'عميل',
-            action: a.action as any,
-            fromStage: details?.fromStage,
-            toStage: details?.toStage,
-            timestamp: a.created_at,
-          };
-        });
-        setActivities(mapped);
-      }
-    } catch (err: unknown) {
-      logger.error('Error fetching activities:', err);
-    }
-  }, [companyId]);
-
-  const refresh = useCallback(async () => {
-    if (!companyId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await Promise.all([fetchClients(), fetchActivities()]);
+      const storedClients = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+      const storedActivities = storage.get<ActivityLog[]>(STORAGE_KEYS.ACTIVITIES) || [];
+      setClients(storedClients);
+      setActivities(storedActivities);
+      setError(null);
+    } catch (e) {
+      setError('تعذر تحميل العملاء');
     } finally {
       setLoading(false);
     }
-  }, [companyId, fetchClients, fetchActivities]);
+  }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    load();
+  }, [load]);
 
-  useRealtime('deals', refresh);
-  useRealtime('customers', refresh);
-  useRealtime('activities', fetchActivities);
+  const saveClients = useCallback((list: Client[]) => {
+    storage.set(STORAGE_KEYS.CLIENTS, list);
+    setClients(list);
+  }, []);
 
-  const addActivity = async (payload: { clientId: string, clientName: string, action: string, fromStage?: string, toStage?: string }) => {
-    if (!companyId) return;
-    try {
-      const validated = activitySchema.parse(payload);
-      await (supabase as any).from('activities').insert({
-        company_id: companyId,
-        deal_id: validated.clientId,
-        action: validated.action,
-        details: {
-          clientName: validated.clientName,
-          fromStage: validated.fromStage,
-          toStage: validated.toStage
-        }
-      });
-      fetchActivities();
-    } catch (err) {
-      logger.error('Error logging activity:', err);
-    }
-  };
+  const saveActivities = useCallback((list: ActivityLog[]) => {
+    storage.set(STORAGE_KEYS.ACTIVITIES, list);
+    setActivities(list);
+  }, []);
 
-  const addClient = useCallback(async (data: ClientFormData) => {
-    if (!companyId) return null;
-
-    try {
-      const validated = clientFormSchema.parse(data);
-
-      const extraJson = encodeExtraFields(validated);
-      const notesWithExtra = extraJson + (validated.notes ? ' ' + validated.notes : '');
-
-      const { data: customer, error: custErr } = await (supabase as any)
-        .from('customers')
-        .insert({
-          company_id: companyId,
-          name: validated.name,
-          phone: validated.phone,
-          email: validated.email || null,
-          source: validated.source,
-          notes: notesWithExtra
-        })
-        .select()
-        .single();
-
-      if (custErr || !customer) throw custErr;
-
-      const title = [validated.brand, validated.model, validated.year].filter(Boolean).join(' ') || validated.vehicleInterest || 'فرصة جديدة';
-
-      const { data: deal, error: dealErr } = await (supabase as any)
-        .from('deals')
-        .insert({
-          company_id: companyId,
-          customer_id: customer.id,
-          title,
-          stage: validated.funnelStage,
-          vehicle_interest: validated.vehicleInterest || title,
-          estimated_value: validated.estimatedValue || 0,
-          status: 'open'
-        })
-        .select()
-        .single();
-
-      if (dealErr || !deal) throw dealErr;
-
-      refresh();
-      addActivity({
-        clientId: deal.id,
-        clientName: customer.name,
-        action: 'created',
-        toStage: deal.stage,
-      });
-
-      return deal;
-    } catch (err: unknown) {
-      logger.error('Error adding client:', err);
-      return null;
-    }
-  }, [companyId, refresh]);
-
-  const updateClient = useCallback(async (id: string, data: Partial<ClientFormData>) => {
-    if (!companyId) return null;
-
-    const existingClient = clients.find(c => c.id === id);
-    if (!existingClient) return null;
-
-    try {
-      const validated = clientFormSchema.partial().parse(data);
-
-      const dealUpdates: Database['public']['Tables']['deals']['Update'] = {};
-      if (validated.funnelStage) dealUpdates.stage = validated.funnelStage;
-      if (validated.vehicleInterest || validated.brand || validated.model) {
-        const title = [validated.brand || existingClient.brand, validated.model || existingClient.model, validated.year || existingClient.year].filter(Boolean).join(' ') || validated.vehicleInterest;
-        dealUpdates.vehicle_interest = validated.vehicleInterest || title;
-        dealUpdates.title = title;
-      }
-      if (validated.estimatedValue !== undefined) dealUpdates.estimated_value = validated.estimatedValue;
-
-      if (Object.keys(dealUpdates).length > 0) {
-        dealUpdates.updated_at = new Date().toISOString();
-        await (supabase as any).from('deals').update(dealUpdates).eq('id', id).eq('company_id', companyId);
-      }
-
-      const merged = { ...existingClient, ...validated };
-      const extraJson = encodeExtraFields(merged);
-      const notesWithExtra = extraJson + (merged.notes ? ' ' + merged.notes : '');
-
-      const custUpdates: any = {
-        updated_at: new Date().toISOString(),
-        notes: notesWithExtra,
+  const addActivity = useCallback(
+    (payload: {
+      clientId: string;
+      clientName: string;
+      action: ActivityLog['action'];
+      fromStage?: FunnelStage;
+      toStage?: FunnelStage;
+    }) => {
+      const entry: ActivityLog = {
+        id: generateId(),
+        clientId: payload.clientId,
+        clientName: payload.clientName,
+        action: payload.action,
+        fromStage: payload.fromStage,
+        toStage: payload.toStage,
+        timestamp: new Date().toISOString(),
       };
-      if (validated.name) custUpdates.name = validated.name;
-      if (validated.phone) custUpdates.phone = validated.phone;
-      if (validated.email !== undefined) custUpdates.email = validated.email;
-      if (validated.source) custUpdates.source = validated.source;
+      const next = [entry, ...(storage.get<ActivityLog[]>(STORAGE_KEYS.ACTIVITIES) || [])].slice(0, 200);
+      saveActivities(next);
+    },
+    [saveActivities]
+  );
 
-      if (existingClient.customerId) {
-        await (supabase as any).from('customers').update(custUpdates).eq('id', existingClient.customerId).eq('company_id', companyId);
+  const addClient = useCallback(
+    async (data: ClientFormData) => {
+      if (!data.name?.trim() || !data.phone?.trim()) {
+        setError('الاسم ورقم الهاتف مطلوبان');
+        return null;
       }
 
-      if (validated.funnelStage && validated.funnelStage !== existingClient.funnelStage) {
+      const now = new Date().toISOString();
+      const id = generateId();
+
+      const client: Client = {
+        id,
+        customerId: id,
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        email: data.email?.trim() || '',
+        vehicleInterest: data.vehicleInterest || '',
+        brand: data.brand || '',
+        model: data.model || '',
+        year: data.year || new Date().getFullYear(),
+        mileage: data.mileage || 0,
+        condition: data.condition,
+        shippingDate: data.shippingDate || '',
+        containerNumber: data.containerNumber || '',
+        customsStatus: data.customsStatus || '',
+        importPrice: data.importPrice || 0,
+        estimatedValue: data.estimatedValue || 0,
+        funnelStage: data.funnelStage || FunnelStage.FIRST_CONTACT,
+        source: data.source || ('whatsapp' as LeadSource),
+        notes: data.notes || '',
+        createdAt: now,
+        updatedAt: now,
+        lastContactAt: now,
+      };
+
+      const current = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+      saveClients([client, ...current]);
+      addActivity({
+        clientId: id,
+        clientName: client.name,
+        action: 'created',
+        toStage: client.funnelStage,
+      });
+      setError(null);
+      return client;
+    },
+    [saveClients, addActivity]
+  );
+
+  const updateClient = useCallback(
+    async (id: string, data: Partial<ClientFormData>) => {
+      const current = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+      const existing = current.find((c) => c.id === id);
+      if (!existing) return null;
+
+      const updated: Client = {
+        ...existing,
+        ...data,
+        name: data.name !== undefined ? data.name.trim() : existing.name,
+        phone: data.phone !== undefined ? data.phone.trim() : existing.phone,
+        updatedAt: new Date().toISOString(),
+        lastContactAt: new Date().toISOString(),
+      };
+
+      saveClients(current.map((c) => (c.id === id ? updated : c)));
+
+      if (data.funnelStage && data.funnelStage !== existing.funnelStage) {
         addActivity({
           clientId: id,
-          clientName: existingClient.name,
+          clientName: existing.name,
           action: 'moved',
-          fromStage: existingClient.funnelStage,
-          toStage: validated.funnelStage,
+          fromStage: existing.funnelStage,
+          toStage: data.funnelStage,
+        });
+      } else {
+        addActivity({
+          clientId: id,
+          clientName: existing.name,
+          action: 'updated',
         });
       }
 
-      setClients(prev => prev.map(c => c.id === id ? { ...c, ...validated } as Client : c));
-    } catch (err: unknown) {
-      logger.error('Error updating client:', err);
-    }
-    return null;
-  }, [companyId, clients]);
+      return updated;
+    },
+    [saveClients, addActivity]
+  );
 
-  const deleteClient = useCallback(async (id: string) => {
-    if (!companyId) return false;
-    try {
-      await supabase.from('deals').delete().eq('id', id).eq('company_id', companyId);
-      setClients(prev => prev.filter(c => c.id !== id));
+  const deleteClient = useCallback(
+    async (id: string) => {
+      const current = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+      const existing = current.find((c) => c.id === id);
+      saveClients(current.filter((c) => c.id !== id));
+      if (existing) {
+        addActivity({
+          clientId: id,
+          clientName: existing.name,
+          action: 'deleted',
+        });
+      }
       return true;
-    } catch (err: unknown) {
-      logger.error('Error deleting client:', err);
-      return false;
-    }
-  }, [companyId]);
+    },
+    [saveClients, addActivity]
+  );
 
-  const moveToStage = useCallback(async (id: string, stage: FunnelStage) => {
-    return updateClient(id, { funnelStage: stage });
-  }, [updateClient]);
+  const moveToStage = useCallback(
+    async (id: string, stage: FunnelStage) => {
+      return updateClient(id, { funnelStage: stage });
+    },
+    [updateClient]
+  );
 
-  const updateLastContact = useCallback(async (id: string) => {
-    if (!companyId) return;
-    await (supabase as any).from('deals').update({ updated_at: new Date().toISOString() }).eq('id', id);
-  }, [companyId]);
+  const updateLastContact = useCallback(
+    async (id: string) => {
+      const current = storage.get<Client[]>(STORAGE_KEYS.CLIENTS) || [];
+      saveClients(
+        current.map((c) =>
+          c.id === id
+            ? { ...c, lastContactAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+            : c
+        )
+      );
+    },
+    [saveClients]
+  );
 
   const getClientsByStage = useCallback((): Record<FunnelStage, Client[]> => {
     const grouped = {} as Record<FunnelStage, Client[]>;
@@ -329,6 +198,8 @@ export function useClients() {
     clients.forEach((c) => {
       if (grouped[c.funnelStage]) {
         grouped[c.funnelStage].push(c);
+      } else {
+        grouped[FunnelStage.FIRST_CONTACT].push(c);
       }
     });
     return grouped;
@@ -337,7 +208,10 @@ export function useClients() {
   const getStats = useCallback((): DashboardStats => {
     const followUpDays = DEFAULT_FOLLOW_UP_DAYS;
     const activeStages = [
-      FunnelStage.FIRST_CONTACT, FunnelStage.ANALYZING, FunnelStage.NEGOTIATION, FunnelStage.FINANCING,
+      FunnelStage.FIRST_CONTACT,
+      FunnelStage.ANALYZING,
+      FunnelStage.NEGOTIATION,
+      FunnelStage.FINANCING,
     ] as FunnelStage[];
     const activeClients = clients.filter((c) => activeStages.includes(c.funnelStage));
     const closedClients = clients.filter((c) => c.funnelStage === FunnelStage.CLOSING);
@@ -352,9 +226,11 @@ export function useClients() {
       clientsBySource[c.source] = (clientsBySource[c.source] || 0) + 1;
     });
 
-    const totalWithOutcome = closedClients.length + clients.filter((c) => c.funnelStage === FunnelStage.LOST).length;
-    const conversionRate = totalWithOutcome > 0 ? (closedClients.length / totalWithOutcome) * 100 : 0;
-    const totalNegotiationValue = activeClients.reduce((sum, c) => sum + c.estimatedValue, 0);
+    const totalWithOutcome =
+      closedClients.length + clients.filter((c) => c.funnelStage === FunnelStage.LOST).length;
+    const conversionRate =
+      totalWithOutcome > 0 ? (closedClients.length / totalWithOutcome) * 100 : 0;
+    const totalNegotiationValue = activeClients.reduce((sum, c) => sum + (c.estimatedValue || 0), 0);
 
     return {
       totalClients: clients.length,
@@ -406,6 +282,6 @@ export function useClients() {
     getClientsByStage,
     getStats,
     searchClients,
-    refresh,
+    refresh: load,
   };
 }
