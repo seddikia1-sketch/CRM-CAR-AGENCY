@@ -1,4 +1,4 @@
-/** كتالوج افتراضي للعرض في المتجر الإلكتروني (سيارات صينية للسوق الجزائري) */
+/** كتالوج افتراضي للعرض في المتجر الإلكتروني */
 
 export interface CatalogCar {
   id: string;
@@ -15,6 +15,8 @@ export interface CatalogCar {
   badge?: string;
   shippingDate?: string;
   description: string;
+  images?: string[];
+  videoUrl?: string;
 }
 
 export interface StoreOffer {
@@ -28,6 +30,9 @@ export interface StoreOffer {
   active: boolean;
   highlight: string;
 }
+
+// صور تجريبية عامة (Unsplash) — تُستبدل بصورك من المخزون
+const img = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=80`;
 
 export const DEFAULT_CATALOG: CatalogCar[] = [
   {
@@ -44,6 +49,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     features: ['7 مقاعد', 'بانورامك', 'ADAS', 'شاشة 12.3'],
     badge: 'عرض خاص',
     description: 'دفع رباعي عائلي، جاهز للتسليم من المخزون.',
+    images: [img('photo-1492144534655-ae79c964c9d7'), img('photo-1503376780353-7e6692767b70')],
   },
   {
     id: 'cat-2',
@@ -58,6 +64,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     features: ['توربو', 'سقف بانورامي', 'كاميرا 360'],
     badge: 'الأكثر طلباً',
     description: 'SUV مدمج رياضي مناسب للمدينة والطريق.',
+    images: [img('photo-1549317661-bd32c8ce0db2')],
   },
   {
     id: 'cat-3',
@@ -72,6 +79,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     features: ['هجين', 'مدى طويل', 'شحن سريع'],
     badge: 'هجين',
     description: 'تقنية هجينة اقتصادية في استهلاك الوقود.',
+    images: [img('photo-1552519507-da3b142c6e3d')],
   },
   {
     id: 'cat-4',
@@ -85,6 +93,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     status: 'available',
     features: ['أقل من 3 سنوات', 'ضمان', 'صيانة دورية'],
     description: 'مستعملة بحالة ممتازة، استيراد حديث.',
+    images: [img('photo-1606664515524-ed2f786a0bd6')],
   },
   {
     id: 'cat-5',
@@ -100,6 +109,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     badge: 'في الطريق',
     shippingDate: '2026-09-20',
     description: 'تم الشحن من الصين — احجز الآن قبل الوصول.',
+    images: [img('photo-1583121274602-3e282ef6259'), img('photo-1494976388531-d1058494cdd8')],
   },
   {
     id: 'cat-6',
@@ -115,6 +125,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     badge: 'مشحونة',
     shippingDate: '2026-09-28',
     description: 'دفعة جديدة على الطريق نحو ميناء الجزائر.',
+    images: [img('photo-1511919884226-fd3cad34687')],
   },
   {
     id: 'cat-7',
@@ -129,6 +140,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     features: ['تحت الجمرك', 'إجراءات جارية'],
     badge: 'جمرك',
     description: 'وصلت الميناء وتحت إجراءات التخليص الجمركي.',
+    images: [img('photo-1533473359331-0135ef1b58bf')],
   },
   {
     id: 'cat-8',
@@ -142,6 +154,7 @@ export const DEFAULT_CATALOG: CatalogCar[] = [
     status: 'available',
     features: ['بيك أب', 'دفع رباعي', 'حمولة عالية'],
     description: 'بيك أب للعمل والاستخدام الشاق.',
+    images: [img('photo-1568605117036-5fe5e7bab0b7')],
   },
 ];
 
