@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Filter, Settings, Car, LogOut, Package, BarChart3, Wrench, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Users, Filter, Settings, Car, LogOut, Package, BarChart3, Wrench, CalendarClock, Calendar } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
 
@@ -14,6 +14,7 @@ export const Sidebar: React.FC = () => {
     { path: '/inventory', label: 'المخزون', icon: <Package size={20} /> },
     { path: '/spare-parts', label: 'قطع الغيار', icon: <Wrench size={20} /> },
     { path: '/maintenance', label: 'الصيانة الدورية', icon: <CalendarClock size={20} /> },
+    { path: '/bookings', label: 'الحجوزات', icon: <Calendar size={20} /> },
     { path: '/reports', label: 'تقارير الأرباح', icon: <BarChart3 size={20} /> },
     { path: '/settings', label: 'الإعدادات', icon: <Settings size={20} /> },
   ];
@@ -26,7 +27,7 @@ export const Sidebar: React.FC = () => {
           <h1 className="logo-text">AutoCRM</h1>
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
         <ul className="nav-list">
           {navItems.map((item) => (
@@ -42,7 +43,7 @@ export const Sidebar: React.FC = () => {
           ))}
         </ul>
       </nav>
-      
+
       <div className="sidebar-footer">
         <div className="user-profile">
           <div className="user-avatar">

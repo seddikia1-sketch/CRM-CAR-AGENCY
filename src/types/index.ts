@@ -188,8 +188,6 @@ export interface PartSale {
   soldAt: string;
 }
 
-// ========== الصيانة الدورية ==========
-
 export const ServiceType = {
   OIL_CHANGE: 'oil_change',
   OIL_FILTER: 'oil_filter',
@@ -210,7 +208,6 @@ export const ServiceType = {
 
 export type ServiceType = typeof ServiceType[keyof typeof ServiceType];
 
-/** ملف صيانة لكل سيارة (مواصفات الزيت والفلاتر) */
 export interface VehicleServiceProfile {
   id: string;
   vehicleId?: string;
@@ -221,21 +218,17 @@ export interface VehicleServiceProfile {
   clientId?: string;
   clientName?: string;
   clientPhone?: string;
-  // مواصفات الزيت
-  oilType: string; // مثال: 5W-30 Fully Synthetic
-  oilCapacity: string; // مثال: 4.5 لتر
-  oilChangeIntervalKm: number; // كل كم كم
-  oilChangeIntervalMonths: number; // كل كم شهر
-  // الفلاتر
+  oilType: string;
+  oilCapacity: string;
+  oilChangeIntervalKm: number;
+  oilChangeIntervalMonths: number;
   oilFilterType: string;
   airFilterType: string;
   fuelFilterType: string;
   cabinFilterType: string;
-  // آخر صيانة
   lastOilChangeDate: string;
   lastOilChangeKm: number;
   currentMileage: number;
-  // ملاحظات
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -264,14 +257,13 @@ export interface VehicleServiceProfileFormData {
   notes: string;
 }
 
-/** سجل عملية صيانة */
 export interface MaintenanceRecord {
   id: string;
   profileId: string;
   vin: string;
   vehicleLabel: string;
   clientName?: string;
-  serviceTypes: ServiceType[]; // يمكن أكثر من نوع في نفس الزيارة
+  serviceTypes: ServiceType[];
   serviceDate: string;
   mileage: number;
   oilTypeUsed?: string;
@@ -297,6 +289,63 @@ export interface MaintenanceRecordFormData {
   fuelFilterUsed?: string;
   cabinFilterUsed?: string;
   cost: number;
+  notes: string;
+}
+
+// ========== الحجوزات والمواعيد (من أفكار Autorizz) ==========
+
+export const BookingType = {
+  SHOWROOM_VISIT: 'showroom_visit',
+  TEST_DRIVE: 'test_drive',
+  MAINTENANCE: 'maintenance',
+  WASH: 'wash',
+  CONSULTATION: 'consultation',
+  DELIVERY: 'delivery',
+  OTHER: 'other',
+} as const;
+
+export type BookingType = typeof BookingType[keyof typeof BookingType];
+
+export const BookingStatus = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  NO_SHOW: 'no_show',
+} as const;
+
+export type BookingStatus = typeof BookingStatus[keyof typeof BookingStatus];
+
+export interface Booking {
+  id: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  clientId?: string;
+  type: BookingType;
+  status: BookingStatus;
+  date: string;
+  time: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleId?: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingFormData {
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  clientId?: string;
+  type: BookingType;
+  status: BookingStatus;
+  date: string;
+  time: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleId?: string;
   notes: string;
 }
 

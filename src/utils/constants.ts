@@ -1,8 +1,4 @@
-// ========================================
-// CRM مكاتب السيارات الصينية — Constants
-// ========================================
-
-import { FunnelStage, LeadSource, VehicleCondition, InventoryStatus, PartCategory, ServiceType } from '../types';
+import { FunnelStage, LeadSource, VehicleCondition, InventoryStatus, PartCategory, ServiceType, BookingType, BookingStatus } from '../types';
 import type { FunnelStageInfo, LeadSourceInfo } from '../types';
 
 export const FUNNEL_STAGES: FunnelStageInfo[] = [
@@ -65,6 +61,24 @@ export const SERVICE_TYPES = [
   { key: ServiceType.TIRES, label: 'الإطارات', emoji: '🛞' },
   { key: ServiceType.FULL_SERVICE, label: 'صيانة شاملة', emoji: '✅' },
   { key: ServiceType.OTHER, label: 'أخرى', emoji: '📋' },
+];
+
+export const BOOKING_TYPES = [
+  { key: BookingType.SHOWROOM_VISIT, label: 'زيارة المعرض', emoji: '🏪' },
+  { key: BookingType.TEST_DRIVE, label: 'تجربة قيادة', emoji: '🚗' },
+  { key: BookingType.MAINTENANCE, label: 'موعد صيانة', emoji: '🔧' },
+  { key: BookingType.WASH, label: 'غسيل سيارة', emoji: '🫧' },
+  { key: BookingType.CONSULTATION, label: 'استشارة بيع', emoji: '💬' },
+  { key: BookingType.DELIVERY, label: 'تسليم سيارة', emoji: '📦' },
+  { key: BookingType.OTHER, label: 'أخرى', emoji: '📋' },
+];
+
+export const BOOKING_STATUSES = [
+  { key: BookingStatus.PENDING, label: 'قيد الانتظار', emoji: '⏳', color: '#f0932b' },
+  { key: BookingStatus.CONFIRMED, label: 'مؤكد', emoji: '✅', color: '#22c55e' },
+  { key: BookingStatus.COMPLETED, label: 'مكتمل', emoji: '✔️', color: '#6c9fff' },
+  { key: BookingStatus.CANCELLED, label: 'ملغى', emoji: '❌', color: '#ef4444' },
+  { key: BookingStatus.NO_SHOW, label: 'لم يحضر', emoji: '👻', color: '#999' },
 ];
 
 export const COMMON_OIL_TYPES = [
