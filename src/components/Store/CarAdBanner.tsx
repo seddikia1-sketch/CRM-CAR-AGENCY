@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { CatalogCar } from '../../data/storeCatalog';
-import { adHeadline, adBullets, adCtaLabel, adBackground } from '../../utils/adCopy';
+import { adHeadline, adBullets, adCtaLabel, adBackground, stockCarImage } from '../../utils/adCopy';
 import { formatCurrency } from '../../utils/formatters';
 
 interface Props {
@@ -10,18 +10,16 @@ interface Props {
 }
 
 /**
- * إعلان عمودي طويل (نسبة ~9:16) — مولّد تلقائياً بدون رفع صور.
- * ألوان قوية، عنوان هجومي، 3 نقاط، زر CTA.
+ * بانر إعلاني عمودي قوي:
+ * صورة سيارة حقيقية (من المخزون أو Stock) + نصوص هجومية + CTA
  */
 export const CarAdBanner: React.FC<Props> = ({ car, onClick, compact }) => {
   const headline = adHeadline(car);
   const bullets = adBullets(car);
   const cta = adCtaLabel(car);
   const bg = adBackground(car.id);
-  const photo = car.images?.[0];
-
-  // شكل السيارة المبسّط بالـ CSS (لا يحتاج صورة مرفوعة)
-  const accent = carAccent(car.id);
+  const fallback = stockCarImage(car.id + car.brand + car.model);
+  const [imgSrc, setImgSrc] = useState(car.images?.[0] || fallback);
 
   return (
     <button
@@ -37,126 +35,127 @@ export const CarAdBanner: React.FC<Props> = ({ car, onClick, compact }) => {
         cursor: onClick ? 'pointer' : 'default',
         textAlign: 'right',
         position: 'relative',
-        // عمودي طويل ≈ 9:16
-        aspectRatio: compact ? '3 / 4' : '9 / 16',
-        maxHeight: compact ? 380 : 520,
+        aspectRatio: compact ? '3 / 4.2' : '9 / 14',
+        minHeight: compact ? 340 : 420,
+        maxHeight: compact ? 400 : 560,
         background: bg,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.45)',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
       }}
     >
-      {/* طبقات بصرية مولّدة */}
+      {/* صورة السيارة — حقيقية وليست رسم باهت */}
+      <img
+        src={imgSrc}
+        alt={`${car.brand} ${car.model}`}
+        onError={() => setImgSrc(fallback)}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '62%',
+          objectFit: 'cover',
+          objectPosition: 'center 40%',
+        }}
+      />
+
+      {/* توهج علوي */}
       <div style={{
-        position: 'absolute', inset: 0,
-        background: `
-          radial-gradient(ellipse at 70% 20%, ${accent}55 0%, transparent 50%),
-          radial-gradient(ellipse at 20% 80%, rgba(34,197,94,0.25) 0%, transparent 45%),
-          ${bg}
-        `,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '35%',
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%)',
+        zIndex: 1,
       }} />
 
-      {/* شبكة خفيفة */}
+      {/* تدرج سفلي قوي للنص */}
       <div style={{
-        position: 'absolute', inset: 0, opacity: 0.07,
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-        backgroundSize: '24px 24px',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '58%',
+        background: 'linear-gradient(180deg, transparent 0%, rgba(8,8,16,0.75) 28%, rgba(8,8,16,0.97) 55%, #080810 100%)',
+        zIndex: 1,
       }} />
 
-      {/* صورة اختيارية إن وُجدت — وإلا رسم سيارة CSS */}
-      {photo ? (
-        <img
-          src={photo}
-          alt=""
-          style={{
-            position: 'absolute',
-            left: '-5%',
-            top: '12%',
-            width: '70%',
-            height: '45%',
-            objectFit: 'cover',
-            objectPosition: 'center',
-            opacity: 0.85,
-            borderRadius: 12,
-            transform: 'perspective(400px) rotateY(8deg)',
-            maskImage: 'linear-gradient(to left, transparent, black 30%)',
-            WebkitMaskImage: 'linear-gradient(to left, transparent, black 30%)',
-          }}
-        />
-      ) : (
-        <GeneratedCarArt brand={car.brand} accent={accent} />
-      )}
-
-      {/* تدرج نص */}
+      {/* شارة */}
       <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.2) 35%, rgba(0,0,0,0.92) 72%)',
-      }} />
-
-      {/* شارة علوية */}
-      <div style={{
-        position: 'absolute', top: 12, right: 12, zIndex: 2,
-        background: 'rgba(251,191,36,0.95)', color: '#0f172a',
-        fontSize: '0.68rem', fontWeight: 900, padding: '4px 10px', borderRadius: 999,
-        letterSpacing: '0.02em',
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        zIndex: 3,
+        background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+        color: '#0f172a',
+        fontSize: '0.72rem',
+        fontWeight: 900,
+        padding: '5px 12px',
+        borderRadius: 8,
+        boxShadow: '0 4px 14px rgba(251,191,36,0.45)',
       }}>
         {car.badge || 'عرض حصري'}
       </div>
 
-      {/* المحتوى */}
+      {/* المحتوى الإعلاني */}
       <div style={{
-        position: 'relative', zIndex: 2,
-        height: '100%',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 2,
+        padding: compact ? '12px 14px 14px' : '16px 16px 18px',
+        color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        padding: compact ? '14px 14px 16px' : '18px 16px 20px',
-        color: '#fff',
+        gap: 6,
       }}>
         <div style={{
-          fontSize: compact ? '0.72rem' : '0.78rem',
-          fontWeight: 800,
-          color: accent,
-          marginBottom: 4,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-        }}>
-          {car.brand}
-        </div>
-
-        <div style={{
-          fontSize: compact ? '1.05rem' : '1.25rem',
+          fontSize: compact ? '1.05rem' : '1.22rem',
           fontWeight: 900,
           lineHeight: 1.3,
-          textShadow: '0 2px 12px rgba(0,0,0,0.6)',
-          marginBottom: 6,
+          textShadow: '0 2px 16px rgba(0,0,0,0.8)',
         }}>
           {headline}
         </div>
 
         <div style={{
-          fontSize: compact ? '0.85rem' : '0.95rem',
-          fontWeight: 700,
-          opacity: 0.95,
-          marginBottom: 10,
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.85)',
         }}>
-          {car.model} · {car.year}
+          {car.brand} {car.model} · {car.year}
           {car.color ? ` · ${car.color}` : ''}
         </div>
 
         <ul style={{
-          listStyle: 'none', margin: '0 0 12px', padding: 0,
-          display: 'flex', flexDirection: 'column', gap: 5,
+          listStyle: 'none',
+          margin: '4px 0 2px',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
         }}>
           {bullets.map((b) => (
             <li key={b} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontSize: compact ? '0.78rem' : '0.88rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: compact ? '0.8rem' : '0.88rem',
               fontWeight: 700,
             }}>
               <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#4ade80', flexShrink: 0,
-                boxShadow: '0 0 8px #4ade80',
-              }} />
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                background: '#22c55e',
+                color: '#fff',
+                fontSize: '0.7rem',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>✓</span>
               {b}
             </li>
           ))}
@@ -164,85 +163,33 @@ export const CarAdBanner: React.FC<Props> = ({ car, onClick, compact }) => {
 
         {car.price > 0 && (
           <div style={{
-            fontSize: compact ? '1.15rem' : '1.35rem',
+            fontSize: compact ? '1.25rem' : '1.45rem',
             fontWeight: 900,
             color: '#4ade80',
-            marginBottom: 12,
-            textShadow: '0 0 20px rgba(74,222,128,0.4)',
+            textShadow: '0 0 24px rgba(74,222,128,0.35)',
+            marginTop: 2,
           }}>
             {formatCurrency(car.price)}
           </div>
         )}
 
-        {/* CTA هجومي */}
         <div style={{
+          marginTop: 6,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(90deg, #ef4444, #f97316)',
+          background: 'linear-gradient(90deg, #ef4444 0%, #f97316 100%)',
           color: '#fff',
           fontWeight: 900,
-          fontSize: compact ? '0.85rem' : '0.95rem',
-          padding: compact ? '11px 14px' : '13px 16px',
-          borderRadius: 12,
-          boxShadow: '0 6px 24px rgba(239,68,68,0.45)',
-          border: '2px solid rgba(255,255,255,0.3)',
-          letterSpacing: '0.02em',
+          fontSize: compact ? '0.9rem' : '1rem',
+          padding: compact ? '12px 14px' : '14px 16px',
+          borderRadius: 14,
+          boxShadow: '0 8px 28px rgba(239,68,68,0.5)',
+          border: '2px solid rgba(255,255,255,0.25)',
         }}>
-          {cta} ⚡
+          ⚡ {cta}
         </div>
       </div>
     </button>
   );
 };
-
-function carAccent(id: string): string {
-  const colors = ['#a78bfa', '#22d3ee', '#f472b6', '#fbbf24', '#4ade80', '#fb923c'];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i) * (i + 3)) % colors.length;
-  return colors[h];
-}
-
-/** رسم سيارة زخرفي CSS — بديل عن رفع صورة */
-function GeneratedCarArt({ brand, accent }: { brand: string; accent: string }) {
-  return (
-    <div style={{
-      position: 'absolute',
-      left: '5%',
-      top: '8%',
-      width: '90%',
-      height: '42%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      pointerEvents: 'none',
-    }}>
-      <svg viewBox="0 0 320 160" width="100%" height="100%" style={{ maxHeight: 200, opacity: 0.95 }}>
-        <defs>
-          <linearGradient id={`g-${brand}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={accent} stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0.35" />
-          </linearGradient>
-        </defs>
-        {/* جسم السيارة مبسّط زاوية 3/4 */}
-        <ellipse cx="160" cy="130" rx="120" ry="12" fill="rgba(0,0,0,0.35)" />
-        <path
-          d="M40 110 Q50 70 95 65 L130 45 Q150 38 175 42 L240 55 Q280 62 290 85 L295 110 Z"
-          fill={`url(#g-${brand})`}
-          stroke="rgba(255,255,255,0.4)"
-          strokeWidth="1.5"
-        />
-        <path d="M100 65 L125 48 L165 50 L155 65 Z" fill="rgba(15,23,42,0.55)" />
-        <path d="M168 52 L210 58 L205 70 L160 65 Z" fill="rgba(15,23,42,0.45)" />
-        <circle cx="95" cy="112" r="22" fill="#0f172a" stroke={accent} strokeWidth="3" />
-        <circle cx="95" cy="112" r="10" fill="#334155" />
-        <circle cx="245" cy="112" r="22" fill="#0f172a" stroke={accent} strokeWidth="3" />
-        <circle cx="245" cy="112" r="10" fill="#334155" />
-        <rect x="268" y="78" width="18" height="8" rx="2" fill="#fef08a" opacity="0.9" />
-        <text x="160" y="28" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="14" fontWeight="bold" fontFamily="system-ui">
-          {brand.toUpperCase()}
-        </text>
-      </svg>
-    </div>
-  );
-}
