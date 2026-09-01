@@ -1,14 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Droplets, Filter, Wind, Fuel, Snowflake, Copy, Check, Wrench } from 'lucide-react';
+import { Search, Droplets, Filter, Wind, Fuel, Snowflake, Copy, Check, Wrench, Gauge } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import {
   OIL_FILTER_CATALOG,
   getCatalogBrands,
   getModelsForBrand,
+  getCatalogRegions,
   type OilFilterSpec,
 } from '../data/oilFilterCatalog';
-import { lookupOilFilters, bestOilFilterMatch, specToMaintenanceFields } from '../services/oilFilterLookup';
+import {
+  lookupOilFilters,
+  bestOilFilterMatch,
+  specToMaintenanceFields,
+  mileageAdvice,
+} from '../services/oilFilterLookup';
 import { useNavigate } from 'react-router-dom';
 
 function CopyBtn({ text }: { text: string }) {
@@ -38,7 +44,16 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
-function SpecCard({ spec, onUseInMaintenance }: { spec: OilFilterSpec; onUseInMaintenance: (s: OilFilterSpec) => void }) {
+function SpecCard({
+  spec,
+  mileageKm,
+  onUseInMaintenance,
+}: {
+  spec: OilFilterSpec;
+  mileageKm?: number;
+  onUseInMaintenance: (s: OilFilterSpec) => void;
+}) {
+  const advice = mileageAdvice(spec, mileageKm);
   return (
     <div
       className="glass-card"
@@ -58,6 +73,7 @@ function SpecCard({ spec, onUseInMaintenance }: { spec: OilFilterSpec; onUseInMa
           <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             {spec.years}
             {spec.engine ? ` · المحرك: ${spec.engine}` : ''}
+            {spec.region ? ` · ${spec.region}` : ''}
           </p>
         </div>
         <Button variant="primary" onClick={() => onUseInMaintenance(spec)} leftIcon={<Wrench size={16} />}>
@@ -65,7 +81,24 @@ function SpecCard({ spec, onUseInMaintenance }: { spec: OilFilterSpec; onUseInMa
         </Button>
       </div>
 
-      {/* الزيت */}
+      {advice && (
+        <div
+          style={{
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: 10,
+            padding: '10px 12px',
+            fontSize: '0.9rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+          }}
+        >
+          <Gauge size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>{advice}</span>
+        </div>
+      )}
+
       <div
         style={{
           background: 'rgba(34, 197, 94, 0.08)',
@@ -108,7 +141,6 @@ function SpecCard({ spec, onUseInMaintenance }: { spec: OilFilterSpec; onUseInMa
         </div>
       </div>
 
-      {/* الفلاتر */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
         <FilterRow icon={<Filter size={16} />} title="فلتر الزيت" value={spec.oilFilter} alt={spec.oilFilterAlt} />
         <FilterRow icon={<Wind size={16} />} title="فلتر الهواء" value={spec.airFilter} alt={spec.airFilterAlt} />
@@ -167,28 +199,34 @@ function FilterRow({
 export const OilFilters: React.FC = () => {
   const navigate = useNavigate();
   const brands = useMemo(() => getCatalogBrands(), []);
+  const regions = useMemo(() => getCatalogRegions(), []);
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState<string>('');
+  const [region, setRegion] = useState('');
+  const [mileage, setMileage] = useState<string>('');
   const [freeText, setFreeText] = useState('');
   const [searched, setSearched] = useState(false);
 
   const models = useMemo(() => (brand ? getModelsForBrand(brand) : []), [brand]);
+  const mileageKm = mileage ? Number(mileage) : undefined;
 
   const results = useMemo(() => {
-    if (!searched && !brand && !model && !freeText) return OIL_FILTER_CATALOG;
+    if (!searched && !brand && !model && !freeText && !region) return OIL_FILTER_CATALOG;
     return lookupOilFilters({
       brand: brand || undefined,
       model: model || undefined,
       year: year ? Number(year) : undefined,
       freeText: freeText || undefined,
+      region: region || undefined,
+      mileageKm,
     });
-  }, [brand, model, year, freeText, searched]);
+  }, [brand, model, year, freeText, region, mileageKm, searched]);
 
   const handleSearch = () => setSearched(true);
 
   const handleUseInMaintenance = (spec: OilFilterSpec) => {
-    const fields = specToMaintenanceFields(spec);
+    const fields = specToMaintenanceFields(spec, mileageKm);
     try {
       sessionStorage.setItem('crm_oil_prefills', JSON.stringify(fields));
     } catch {
@@ -200,8 +238,10 @@ export const OilFilters: React.FC = () => {
   const quickExamples = [
     { label: 'جيتور 70 بلس', brand: 'Jetour', model: 'X70 Plus' },
     { label: 'تيجو 8', brand: 'Chery', model: 'Tiggo 8' },
-    { label: 'هافال جوليون', brand: 'Haval', model: 'Jolion' },
-    { label: 'جيلي كولراي', brand: 'Geely', model: 'Coolray' },
+    { label: 'تويوتا كورولا', brand: 'Toyota', model: 'Corolla' },
+    { label: 'هيونداي توسان', brand: 'Hyundai', model: 'Tucson' },
+    { label: 'داسيا داستر', brand: 'Dacia', model: 'Duster' },
+    { label: 'فولكس غولف', brand: 'Volkswagen', model: 'Golf' },
   ];
 
   return (
@@ -209,21 +249,41 @@ export const OilFilters: React.FC = () => {
       <div className="page-header" style={{ marginBottom: 0 }}>
         <h1 className="page-title">دليل الزيت والفلاتر</h1>
         <p className="page-description">
-          أدخل ماركة وموديل السيارة (أو ابحث بالنص) لتحصل على نوع الزيت واللزوجة والمعايير وفلاتر الزيت والهواء
-          والبنزين والمكيف.
+          أدخل الماركة والموديل والمسافة المقطوعة لتحصل على نوع الزيت واللزوجة والمعايير وفلاتر الزيت والهواء
+          والبنزين والمكيف — صيني · ياباني · ألماني · فرنسي · كوري.
         </p>
       </div>
 
-      {/* نموذج البحث */}
       <div className="glass-card" style={{ padding: 16 }}>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
             gap: 12,
             alignItems: 'end',
           }}
         >
+          <div className="input-wrapper">
+            <label className="input-label">المنطقة / النوع</label>
+            <select
+              className="input-field"
+              value={region}
+              onChange={(e) => {
+                setRegion(e.target.value);
+                setBrand('');
+                setModel('');
+                setSearched(true);
+              }}
+            >
+              <option value="">الكل</option>
+              {regions.map((r) => (
+                <option key={r.key} value={r.key}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="input-wrapper">
             <label className="input-label">الماركة</label>
             <select
@@ -236,11 +296,16 @@ export const OilFilters: React.FC = () => {
               }}
             >
               <option value="">الكل</option>
-              {brands.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
+              {brands
+                .filter((b) => {
+                  if (!region) return true;
+                  return OIL_FILTER_CATALOG.some((x) => x.brand === b && x.region === region);
+                })
+                .map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -276,8 +341,20 @@ export const OilFilters: React.FC = () => {
           />
 
           <Input
+            label="المسافة المقطوعة (كم)"
+            type="number"
+            placeholder="مثال: 45000"
+            value={mileage}
+            onChange={(e) => {
+              setMileage(e.target.value);
+              setSearched(true);
+            }}
+            leftIcon={<Gauge size={16} />}
+          />
+
+          <Input
             label="بحث حر"
-            placeholder="مثال: جيتور 70 أو tiggo 8"
+            placeholder="مثال: كورولا أو tiggo 8"
             value={freeText}
             onChange={(e) => {
               setFreeText(e.target.value);
@@ -300,6 +377,7 @@ export const OilFilters: React.FC = () => {
               onClick={() => {
                 setBrand(q.brand);
                 setModel(q.model);
+                setRegion('');
                 setFreeText('');
                 setSearched(true);
               }}
@@ -321,6 +399,7 @@ export const OilFilters: React.FC = () => {
 
       <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
         النتائج: <strong>{results.length}</strong> مواصفة
+        {mileageKm ? ` · المسافة المدخلة: ${mileageKm.toLocaleString()} كم` : ''}
         {bestOilFilterMatch({ brand, model, year: year ? Number(year) : undefined }) && brand && model
           ? ' · أفضل تطابق ظاهر أولاً'
           : ''}
@@ -329,14 +408,14 @@ export const OilFilters: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflow: 'auto', paddingBottom: 24 }}>
         {results.length === 0 ? (
           <div className="glass-card empty-state" style={{ padding: 32 }}>
-            <p>لا توجد نتيجة. جرّب ماركة أخرى أو بحثاً أوسع (مثال: Jetour أو Tiggo).</p>
+            <p>لا توجد نتيجة. جرّب ماركة أخرى أو بحثاً أوسع.</p>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               يمكنك إضافة مواصفات يدوياً من صفحة الصيانة الدورية.
             </p>
           </div>
         ) : (
           results.map((spec) => (
-            <SpecCard key={spec.id} spec={spec} onUseInMaintenance={handleUseInMaintenance} />
+            <SpecCard key={spec.id} spec={spec} mileageKm={mileageKm} onUseInMaintenance={handleUseInMaintenance} />
           ))
         )}
       </div>
