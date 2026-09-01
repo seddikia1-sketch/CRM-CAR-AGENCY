@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Filter, Settings, Car, LogOut,
-  Package, BarChart3, Wrench, CalendarClock, Calendar, Wallet, MessageCircle, Store,
+  Package, BarChart3, Wrench, CalendarClock, Calendar, Wallet, MessageCircle, Store, Droplets,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth';
 import './Sidebar.css';
@@ -21,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
     { path: '/pipeline', label: 'مراحل المبيعات', icon: <Filter size={20} /> },
     { path: '/inventory', label: 'المخزون', icon: <Package size={20} /> },
     { path: '/spare-parts', label: 'قطع الغيار', icon: <Wrench size={20} /> },
+    { path: '/oil-filters', label: 'دليل الزيت والفلاتر', icon: <Droplets size={20} /> },
     { path: '/maintenance', label: 'الصيانة الدورية', icon: <CalendarClock size={20} /> },
     { path: '/bookings', label: 'الحجوزات', icon: <Calendar size={20} /> },
     { path: '/payments', label: 'الدفعات', icon: <Wallet size={20} /> },
