@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Plus, Search, Wrench, AlertTriangle, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Wrench, Droplets } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { useInventory } from '../hooks/useInventory';
-import { useClients } from '../hooks/useClients';
 import type {
   VehicleServiceProfile,
   VehicleServiceProfileFormData,
@@ -14,6 +14,7 @@ import type {
 import { SERVICE_TYPES, COMMON_OIL_TYPES, CHINESE_BRANDS } from '../utils/constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { Modal } from '../components/UI/Modal';
+import { bestOilFilterMatch, specToMaintenanceFields } from '../services/oilFilterLookup';
 import '../components/Clients/ClientTable.css';
 
 export const Maintenance: React.FC = () => {
@@ -26,20 +27,18 @@ export const Maintenance: React.FC = () => {
     addRecord,
     searchProfiles,
     getDueServices,
-    getRecordsByProfile,
     stats,
   } = useMaintenance();
   const { vehicles } = useInventory();
-  const { clients } = useClients();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'list' | 'due' | 'history'>('list');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<VehicleServiceProfile | undefined>();
-  const [serviceProfileId, setServiceProfileId] = useState<string>('');
+  const [catalogHint, setCatalogHint] = useState('');
 
-  // نموذج الملف
   const [form, setForm] = useState<VehicleServiceProfileFormData>({
     vin: '', brand: '', model: '', year: new Date().getFullYear(),
     clientName: '', clientPhone: '',
@@ -49,7 +48,6 @@ export const Maintenance: React.FC = () => {
     lastOilChangeDate: '', lastOilChangeKm: 0, currentMileage: 0, notes: '',
   });
 
-  // نموذج الصيانة
   const [serviceForm, setServiceForm] = useState<MaintenanceRecordFormData>({
     profileId: '', serviceTypes: ['oil_change', 'oil_filter'],
     serviceDate: new Date().toISOString().split('T')[0],
@@ -60,8 +58,72 @@ export const Maintenance: React.FC = () => {
   const filtered = searchProfiles(searchQuery);
   const dueList = getDueServices();
 
+  /** تعبئة حقول الزيت/الفلاتر من الكتالوج */
+  const applyFromCatalog = (brand: string, model: string, year?: number) => {
+    if (!brand || !model) {
+      setCatalogHint('أدخل الماركة والموديل أولاً');
+      return false;
+    }
+    const spec = bestOilFilterMatch({ brand, model, year });
+    if (!spec) {
+      setCatalogHint('لا توجد مواصفة في الدليل لهذه السيارة — املأ يدوياً أو أضف من دليل الزيت');
+      return false;
+    }
+    const fields = specToMaintenanceFields(spec);
+    setForm((prev) => ({
+      ...prev,
+      brand: fields.brand || prev.brand,
+      model: fields.model || prev.model,
+      oilType: fields.oilType,
+      oilCapacity: fields.oilCapacity,
+      oilChangeIntervalKm: fields.oilChangeIntervalKm,
+      oilChangeIntervalMonths: fields.oilChangeIntervalMonths,
+      oilFilterType: fields.oilFilterType,
+      airFilterType: fields.airFilterType,
+      fuelFilterType: fields.fuelFilterType,
+      cabinFilterType: fields.cabinFilterType,
+      notes: [prev.notes, fields.notes].filter(Boolean).join(' · '),
+    }));
+    setCatalogHint(`تم التعبئة من الدليل: ${spec.brand} ${spec.model} (${spec.oilViscosity})`);
+    return true;
+  };
+
+  // قادم من صفحة دليل الزيت والفلاتر
+  useEffect(() => {
+    if (searchParams.get('prefill') !== '1') return;
+    try {
+      const raw = sessionStorage.getItem('crm_oil_prefills');
+      if (!raw) return;
+      const fields = JSON.parse(raw) as ReturnType<typeof specToMaintenanceFields>;
+      setEditingProfile(undefined);
+      setForm((prev) => ({
+        ...prev,
+        vin: prev.vin || '',
+        brand: fields.brand || prev.brand,
+        model: fields.model || prev.model,
+        year: prev.year || new Date().getFullYear(),
+        oilType: fields.oilType || prev.oilType,
+        oilCapacity: fields.oilCapacity || prev.oilCapacity,
+        oilChangeIntervalKm: fields.oilChangeIntervalKm || prev.oilChangeIntervalKm,
+        oilChangeIntervalMonths: fields.oilChangeIntervalMonths || prev.oilChangeIntervalMonths,
+        oilFilterType: fields.oilFilterType || prev.oilFilterType,
+        airFilterType: fields.airFilterType || prev.airFilterType,
+        fuelFilterType: fields.fuelFilterType || prev.fuelFilterType,
+        cabinFilterType: fields.cabinFilterType || prev.cabinFilterType,
+        notes: fields.notes || prev.notes,
+      }));
+      setCatalogHint('تم استيراد المواصفات من دليل الزيت والفلاتر');
+      setIsProfileModalOpen(true);
+      sessionStorage.removeItem('crm_oil_prefills');
+      setSearchParams({}, { replace: true });
+    } catch {
+      /* ignore */
+    }
+  }, [searchParams, setSearchParams]);
+
   const openNewProfile = () => {
     setEditingProfile(undefined);
+    setCatalogHint('');
     setForm({
       vin: '', brand: '', model: '', year: new Date().getFullYear(),
       clientName: '', clientPhone: '',
@@ -75,13 +137,13 @@ export const Maintenance: React.FC = () => {
 
   const openEditProfile = (p: VehicleServiceProfile) => {
     setEditingProfile(p);
+    setCatalogHint('');
     setForm({ ...p });
     setIsProfileModalOpen(true);
   };
 
   const openServiceModal = (profileId: string) => {
     const p = profiles.find((x) => x.id === profileId);
-    setServiceProfileId(profileId);
     setServiceForm({
       profileId,
       serviceTypes: ['oil_change', 'oil_filter'],
@@ -123,7 +185,6 @@ export const Maintenance: React.FC = () => {
     });
   };
 
-  // تعبئة من سيارة في المخزون
   const fillFromVehicle = (vehicleId: string) => {
     const v = vehicles.find((x) => x.id === vehicleId);
     if (!v) return;
@@ -138,21 +199,27 @@ export const Maintenance: React.FC = () => {
       clientName: v.soldToClientName || prev.clientName,
       clientId: v.soldToClientId || prev.clientId,
     }));
+    // تعبئة الزيت والفلاتر تلقائياً من الدليل
+    setTimeout(() => applyFromCatalog(v.brand, v.model, v.year), 0);
   };
 
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
-      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0 }}>
+      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">الصيانة الدورية</h1>
           <p className="page-description">متابعة تغيير الزيت والفلاتر وجداول الصيانة لكل سيارة.</p>
         </div>
-        <Button variant="primary" leftIcon={<Plus size={18} />} onClick={openNewProfile}>
-          إضافة سيارة للصيانة
-        </Button>
+        <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Link to="/oil-filters" style={{ textDecoration: 'none' }}>
+            <Button variant="ghost" leftIcon={<Droplets size={18} />}>دليل الزيت والفلاتر</Button>
+          </Link>
+          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={openNewProfile}>
+            إضافة سيارة للصيانة
+          </Button>
+        </div>
       </div>
 
-      {/* إحصائيات */}
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
         <div className="glass-card" style={{ padding: '12px 18px', flex: '1 1 140px' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>سيارات مسجلة</div>
@@ -176,7 +243,6 @@ export const Maintenance: React.FC = () => {
         </div>
       </div>
 
-      {/* تبويبات */}
       <div className="flex gap-sm">
         <Button variant={activeTab === 'list' ? 'primary' : 'ghost'} onClick={() => setActiveTab('list')}>السيارات</Button>
         <Button variant={activeTab === 'due' ? 'primary' : 'ghost'} onClick={() => setActiveTab('due')}>
@@ -185,7 +251,6 @@ export const Maintenance: React.FC = () => {
         <Button variant={activeTab === 'history' ? 'primary' : 'ghost'} onClick={() => setActiveTab('history')}>سجل الصيانة</Button>
       </div>
 
-      {/* قائمة السيارات */}
       {activeTab === 'list' && (
         <div className="glass-card flex-col" style={{ flex: 1, display: 'flex' }}>
           <div style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)' }}>
@@ -246,7 +311,6 @@ export const Maintenance: React.FC = () => {
         </div>
       )}
 
-      {/* تحتاج صيانة */}
       {activeTab === 'due' && (
         <div className="glass-card" style={{ padding: 'var(--spacing-md)', flex: 1 }}>
           {dueList.length === 0 ? (
@@ -273,9 +337,7 @@ export const Maintenance: React.FC = () => {
                         {item.kmRemaining} كم
                       </td>
                       <td>
-                        {item.daysRemaining !== null
-                          ? `${item.daysRemaining} يوم`
-                          : '-'}
+                        {item.daysRemaining !== null ? `${item.daysRemaining} يوم` : '-'}
                       </td>
                       <td>
                         {item.isOverdue ? (
@@ -298,7 +360,6 @@ export const Maintenance: React.FC = () => {
         </div>
       )}
 
-      {/* سجل الصيانة */}
       {activeTab === 'history' && (
         <div className="glass-card" style={{ padding: 'var(--spacing-md)', flex: 1 }}>
           {records.length === 0 ? (
@@ -341,7 +402,6 @@ export const Maintenance: React.FC = () => {
         </div>
       )}
 
-      {/* نافذة إضافة/تعديل ملف صيانة */}
       <Modal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
@@ -373,7 +433,14 @@ export const Maintenance: React.FC = () => {
             <Input label="رقم الهيكل (VIN) *" value={form.vin} onChange={(e) => setForm({ ...form, vin: e.target.value })} required />
             <div className="input-wrapper" style={{ flex: 1 }}>
               <label className="input-label">الماركة *</label>
-              <select className="input-field" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })}>
+              <select
+                className="input-field"
+                value={form.brand}
+                onChange={(e) => {
+                  const brand = e.target.value;
+                  setForm({ ...form, brand });
+                }}
+              >
                 <option value="">اختر</option>
                 {CHINESE_BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
@@ -381,9 +448,38 @@ export const Maintenance: React.FC = () => {
           </div>
 
           <div className="flex gap-md">
-            <Input label="الموديل *" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+            <Input
+              label="الموديل *"
+              value={form.model}
+              onChange={(e) => setForm({ ...form, model: e.target.value })}
+              placeholder="مثال: X70 Plus أو Tiggo 8"
+            />
             <Input label="السنة" type="number" value={form.year || ''} onChange={(e) => setForm({ ...form, year: Number(e.target.value) })} />
             <Input label="الكيلومترات الحالية" type="number" value={form.currentMileage || ''} onChange={(e) => setForm({ ...form, currentMileage: Number(e.target.value) })} />
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'rgba(34, 197, 94, 0.08)',
+              border: '1px solid rgba(34, 197, 94, 0.25)',
+            }}
+          >
+            <Button
+              variant="primary"
+              leftIcon={<Droplets size={16} />}
+              onClick={() => applyFromCatalog(form.brand, form.model, form.year)}
+            >
+              تعبئة الزيت والفلاتر من الدليل
+            </Button>
+            {catalogHint && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{catalogHint}</span>
+            )}
           </div>
 
           <div className="flex gap-md">
@@ -395,11 +491,19 @@ export const Maintenance: React.FC = () => {
             <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>مواصفات الزيت</p>
             <div className="flex gap-md">
               <div className="input-wrapper" style={{ flex: 1 }}>
-                <label className="input-label">نوع الزيت</label>
-                <select className="input-field" value={form.oilType} onChange={(e) => setForm({ ...form, oilType: e.target.value })}>
-                  {COMMON_OIL_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
-                  <option value="other">أخرى</option>
-                </select>
+                <label className="input-label">نوع الزيت / اللزوجة والمعيار</label>
+                <input
+                  className="input-field"
+                  list="oil-types-list"
+                  value={form.oilType}
+                  onChange={(e) => setForm({ ...form, oilType: e.target.value })}
+                  placeholder="5W-30 Fully Synthetic (API SP)"
+                />
+                <datalist id="oil-types-list">
+                  {COMMON_OIL_TYPES.map((o) => (
+                    <option key={o} value={o} />
+                  ))}
+                </datalist>
               </div>
               <Input label="السعة (لتر)" value={form.oilCapacity} onChange={(e) => setForm({ ...form, oilCapacity: e.target.value })} placeholder="4.5" />
             </div>
@@ -436,7 +540,6 @@ export const Maintenance: React.FC = () => {
         </div>
       </Modal>
 
-      {/* نافذة تسجيل صيانة */}
       <Modal
         isOpen={isServiceModalOpen}
         onClose={() => setIsServiceModalOpen(false)}
