@@ -104,9 +104,7 @@ export interface Vehicle {
   sellingPrice: number;
   status: InventoryStatus;
   notes: string;
-  /** روابط أو data-URL للصور */
   images: string[];
-  /** رابط فيديو (يوتيوب / ملف mp4 / درايف...) */
   videoUrl: string;
   soldToClientId?: string;
   soldToClientName?: string;
@@ -401,3 +399,5 @@ export interface AgencySettings {
   name: string;
   followUpDays: number;
 }
+
+export * from './purchases';
