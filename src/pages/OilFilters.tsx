@@ -1,5 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Droplets, Filter, Wind, Fuel, Snowflake, Copy, Check, Wrench, Gauge } from 'lucide-react';
+import {
+  Search,
+  Droplets,
+  Filter,
+  Wind,
+  Fuel,
+  Snowflake,
+  Copy,
+  Check,
+  Wrench,
+  Gauge,
+  Tag,
+  BadgeCheck,
+} from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import {
@@ -15,6 +28,12 @@ import {
   specToMaintenanceFields,
   mileageAdvice,
 } from '../services/oilFilterLookup';
+import {
+  FILTER_PRICE_LIST,
+  FILTER_TYPE_LABELS,
+  extractOemNumbers,
+  type FilterPriceItem,
+} from '../data/filterPriceList';
 import { useNavigate } from 'react-router-dom';
 
 function CopyBtn({ text }: { text: string }) {
@@ -41,6 +60,37 @@ function CopyBtn({ text }: { text: string }) {
     >
       {ok ? <Check size={14} /> : <Copy size={14} />}
     </button>
+  );
+}
+
+function OemBadges({ text }: { text: string }) {
+  const oems = extractOemNumbers(text);
+  if (oems.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+      {oems.map((n) => (
+        <span
+          key={n}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            background: 'rgba(34, 197, 94, 0.15)',
+            border: '1px solid rgba(34, 197, 94, 0.4)',
+            color: '#22c55e',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontFamily: 'ui-monospace, monospace',
+          }}
+        >
+          <BadgeCheck size={12} />
+          OEM: {n}
+          <CopyBtn text={n} />
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -142,14 +192,15 @@ function SpecCard({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-        <FilterRow icon={<Filter size={16} />} title="فلتر الزيت" value={spec.oilFilter} alt={spec.oilFilterAlt} />
-        <FilterRow icon={<Wind size={16} />} title="فلتر الهواء" value={spec.airFilter} alt={spec.airFilterAlt} />
+        <FilterRow icon={<Filter size={16} />} title="فلتر الزيت" value={spec.oilFilter} alt={spec.oilFilterAlt} highlightOem />
+        <FilterRow icon={<Wind size={16} />} title="فلتر الهواء" value={spec.airFilter} alt={spec.airFilterAlt} highlightOem />
         <FilterRow icon={<Fuel size={16} />} title="فلتر البنزين" value={spec.fuelFilter} alt={spec.fuelFilterAlt} />
         <FilterRow
           icon={<Snowflake size={16} />}
           title="فلتر المكيف / المقصورة"
           value={spec.cabinFilter}
           alt={spec.cabinFilterAlt}
+          highlightOem
         />
       </div>
 
@@ -168,11 +219,13 @@ function FilterRow({
   title,
   value,
   alt,
+  highlightOem,
 }: {
   icon: React.ReactNode;
   title: string;
   value: string;
   alt?: string;
+  highlightOem?: boolean;
 }) {
   return (
     <div
@@ -189,9 +242,137 @@ function FilterRow({
         <CopyBtn text={value} />
       </div>
       <div style={{ fontSize: '0.85rem', lineHeight: 1.45 }}>{value}</div>
+      {highlightOem && <OemBadges text={value} />}
       {alt && (
         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>بديل: {alt}</div>
       )}
+    </div>
+  );
+}
+
+function formatDzd(n: number) {
+  if (!n) return '—';
+  return n.toLocaleString('ar-DZ') + ' دج';
+}
+
+function PriceTable() {
+  const [q, setQ] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'' | FilterPriceItem['type']>('');
+
+  const rows = useMemo(() => {
+    let list = [...FILTER_PRICE_LIST];
+    if (typeFilter) list = list.filter((x) => x.type === typeFilter);
+    if (q.trim()) {
+      const n = q.toLowerCase();
+      list = list.filter(
+        (x) =>
+          x.name.toLowerCase().includes(n) ||
+          x.oemNumber.toLowerCase().includes(n) ||
+          x.compatible.toLowerCase().includes(n) ||
+          x.brandLabel.toLowerCase().includes(n) ||
+          x.altBrand.toLowerCase().includes(n)
+      );
+    }
+    return list;
+  }, [q, typeFilter]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+      <div className="glass-card" style={{ padding: 16 }}>
+        <p style={{ margin: '0 0 12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          أسعار استرشادية للبيع بالتجزئة في الجزائر (دج). عدّلها حسب سعر الشراء وهامش ربحك. الرقم الأصلي
+          (OEM) موضّح للنسخ عند الطلب من المورد.
+        </p>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 12,
+            alignItems: 'end',
+          }}
+        >
+          <Input
+            label="بحث"
+            placeholder="رقم OEM أو تويوتا أو أكسنت..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            leftIcon={<Search size={16} />}
+          />
+          <div className="input-wrapper">
+            <label className="input-label">نوع الفلتر</label>
+            <select className="input-field" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as '' | FilterPriceItem['type'])}>
+              <option value="">الكل</option>
+              <option value="oil">فلتر زيت</option>
+              <option value="air">فلتر هواء</option>
+              <option value="cabin">فلتر مقصورة</option>
+              <option value="fuel">فلتر بنزين</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card" style={{ overflow: 'auto', flex: 1 }}>
+        <div className="table-container">
+          <table className="client-table" style={{ minWidth: 720 }}>
+            <thead>
+              <tr>
+                <th>الفلتر</th>
+                <th>رقم OEM</th>
+                <th>النوع</th>
+                <th>التوافق</th>
+                <th>سعر أصلي (دج)</th>
+                <th>بديل موثوق (دج)</th>
+                <th>البديل</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: 24 }}>
+                    لا توجد نتائج
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{r.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{r.brandLabel}</div>
+                      {r.notes && (
+                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: 2 }}>📌 {r.notes}</div>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          fontFamily: 'ui-monospace, monospace',
+                          fontWeight: 700,
+                          color: '#22c55e',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        {r.oemNumber}
+                        <CopyBtn text={r.oemNumber} />
+                      </span>
+                    </td>
+                    <td>{FILTER_TYPE_LABELS[r.type]}</td>
+                    <td style={{ fontSize: '0.85rem', maxWidth: 200 }}>{r.compatible}</td>
+                    <td style={{ fontWeight: 700 }}>{formatDzd(r.priceOemDzd)}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{formatDzd(r.priceAltDzd)}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{r.altBrand}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        💡 الأسعار تقريبية — راجع المورد قبل التسعير النهائي. الفلتر الأصلي أغلى عادةً من Mann/Bosch المطابق.
+      </p>
     </div>
   );
 }
@@ -200,6 +381,7 @@ export const OilFilters: React.FC = () => {
   const navigate = useNavigate();
   const brands = useMemo(() => getCatalogBrands(), []);
   const regions = useMemo(() => getCatalogRegions(), []);
+  const [tab, setTab] = useState<'guide' | 'prices'>('guide');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState<string>('');
@@ -238,10 +420,10 @@ export const OilFilters: React.FC = () => {
   const quickExamples = [
     { label: 'جيتور 70 بلس', brand: 'Jetour', model: 'X70 Plus' },
     { label: 'تيجو 8', brand: 'Chery', model: 'Tiggo 8' },
+    { label: 'تويوتا فيوس', brand: 'Toyota', model: 'Vios' },
+    { label: 'هيونداي أكسنت', brand: 'Hyundai', model: 'Accent / Verna' },
+    { label: 'جيلي إيمقراند', brand: 'Geely', model: 'Emgrand' },
     { label: 'تويوتا كورولا', brand: 'Toyota', model: 'Corolla' },
-    { label: 'هيونداي توسان', brand: 'Hyundai', model: 'Tucson' },
-    { label: 'داسيا داستر', brand: 'Dacia', model: 'Duster' },
-    { label: 'فولكس غولف', brand: 'Volkswagen', model: 'Golf' },
   ];
 
   return (
@@ -249,176 +431,186 @@ export const OilFilters: React.FC = () => {
       <div className="page-header" style={{ marginBottom: 0 }}>
         <h1 className="page-title">دليل الزيت والفلاتر</h1>
         <p className="page-description">
-          أدخل الماركة والموديل والمسافة المقطوعة لتحصل على نوع الزيت واللزوجة والمعايير وفلاتر الزيت والهواء
-          والبنزين والمكيف — صيني · ياباني · ألماني · فرنسي · كوري.
+          مواصفات الزيت والفلاتر الأصلية (OEM) + جدول أسعار مقترح للبيع — صيني · ياباني · ألماني · فرنسي · كوري.
         </p>
       </div>
 
-      <div className="glass-card" style={{ padding: 16 }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: 12,
-            alignItems: 'end',
-          }}
-        >
-          <div className="input-wrapper">
-            <label className="input-label">المنطقة / النوع</label>
-            <select
-              className="input-field"
-              value={region}
-              onChange={(e) => {
-                setRegion(e.target.value);
-                setBrand('');
-                setModel('');
-                setSearched(true);
-              }}
-            >
-              <option value="">الكل</option>
-              {regions.map((r) => (
-                <option key={r.key} value={r.key}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+        <Button variant={tab === 'guide' ? 'primary' : 'ghost'} onClick={() => setTab('guide')} leftIcon={<Droplets size={16} />}>
+          دليل المواصفات
+        </Button>
+        <Button variant={tab === 'prices' ? 'primary' : 'ghost'} onClick={() => setTab('prices')} leftIcon={<Tag size={16} />}>
+          أسعار الفلاتر (OEM)
+        </Button>
+      </div>
 
-          <div className="input-wrapper">
-            <label className="input-label">الماركة</label>
-            <select
-              className="input-field"
-              value={brand}
-              onChange={(e) => {
-                setBrand(e.target.value);
-                setModel('');
-                setSearched(true);
-              }}
-            >
-              <option value="">الكل</option>
-              {brands
-                .filter((b) => {
-                  if (!region) return true;
-                  return OIL_FILTER_CATALOG.some((x) => x.brand === b && x.region === region);
-                })
-                .map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div className="input-wrapper">
-            <label className="input-label">الموديل</label>
-            <select
-              className="input-field"
-              value={model}
-              onChange={(e) => {
-                setModel(e.target.value);
-                setSearched(true);
-              }}
-              disabled={!brand}
-            >
-              <option value="">الكل</option>
-              {models.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <Input
-            label="السنة (اختياري)"
-            type="number"
-            placeholder="2024"
-            value={year}
-            onChange={(e) => {
-              setYear(e.target.value);
-              setSearched(true);
-            }}
-          />
-
-          <Input
-            label="المسافة المقطوعة (كم)"
-            type="number"
-            placeholder="مثال: 45000"
-            value={mileage}
-            onChange={(e) => {
-              setMileage(e.target.value);
-              setSearched(true);
-            }}
-            leftIcon={<Gauge size={16} />}
-          />
-
-          <Input
-            label="بحث حر"
-            placeholder="مثال: كورولا أو tiggo 8"
-            value={freeText}
-            onChange={(e) => {
-              setFreeText(e.target.value);
-              setSearched(true);
-            }}
-            leftIcon={<Search size={16} />}
-          />
-
-          <Button variant="primary" onClick={handleSearch} leftIcon={<Search size={18} />}>
-            بحث
-          </Button>
-        </div>
-
-        <div className="flex gap-sm" style={{ marginTop: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>سريع:</span>
-          {quickExamples.map((q) => (
-            <button
-              key={q.label}
-              type="button"
-              onClick={() => {
-                setBrand(q.brand);
-                setModel(q.model);
-                setRegion('');
-                setFreeText('');
-                setSearched(true);
-              }}
+      {tab === 'prices' ? (
+        <PriceTable />
+      ) : (
+        <>
+          <div className="glass-card" style={{ padding: 16 }}>
+            <div
               style={{
-                padding: '4px 12px',
-                borderRadius: 20,
-                border: '1px solid var(--border-color)',
-                background: 'transparent',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                color: 'var(--text-primary)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: 12,
+                alignItems: 'end',
               }}
             >
-              {q.label}
-            </button>
-          ))}
-        </div>
-      </div>
+              <div className="input-wrapper">
+                <label className="input-label">المنطقة / النوع</label>
+                <select
+                  className="input-field"
+                  value={region}
+                  onChange={(e) => {
+                    setRegion(e.target.value);
+                    setBrand('');
+                    setModel('');
+                    setSearched(true);
+                  }}
+                >
+                  <option value="">الكل</option>
+                  {regions.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-        النتائج: <strong>{results.length}</strong> مواصفة
-        {mileageKm ? ` · المسافة المدخلة: ${mileageKm.toLocaleString()} كم` : ''}
-        {bestOilFilterMatch({ brand, model, year: year ? Number(year) : undefined }) && brand && model
-          ? ' · أفضل تطابق ظاهر أولاً'
-          : ''}
-      </p>
+              <div className="input-wrapper">
+                <label className="input-label">الماركة</label>
+                <select
+                  className="input-field"
+                  value={brand}
+                  onChange={(e) => {
+                    setBrand(e.target.value);
+                    setModel('');
+                    setSearched(true);
+                  }}
+                >
+                  <option value="">الكل</option>
+                  {brands
+                    .filter((b) => {
+                      if (!region) return true;
+                      return OIL_FILTER_CATALOG.some((x) => x.brand === b && x.region === region);
+                    })
+                    .map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflow: 'auto', paddingBottom: 24 }}>
-        {results.length === 0 ? (
-          <div className="glass-card empty-state" style={{ padding: 32 }}>
-            <p>لا توجد نتيجة. جرّب ماركة أخرى أو بحثاً أوسع.</p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              يمكنك إضافة مواصفات يدوياً من صفحة الصيانة الدورية.
-            </p>
+              <div className="input-wrapper">
+                <label className="input-label">الموديل</label>
+                <select
+                  className="input-field"
+                  value={model}
+                  onChange={(e) => {
+                    setModel(e.target.value);
+                    setSearched(true);
+                  }}
+                  disabled={!brand}
+                >
+                  <option value="">الكل</option>
+                  {models.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Input
+                label="السنة (اختياري)"
+                type="number"
+                placeholder="2024"
+                value={year}
+                onChange={(e) => {
+                  setYear(e.target.value);
+                  setSearched(true);
+                }}
+              />
+
+              <Input
+                label="المسافة المقطوعة (كم)"
+                type="number"
+                placeholder="مثال: 45000"
+                value={mileage}
+                onChange={(e) => {
+                  setMileage(e.target.value);
+                  setSearched(true);
+                }}
+                leftIcon={<Gauge size={16} />}
+              />
+
+              <Input
+                label="بحث حر"
+                placeholder="مثال: فيوس أو accent"
+                value={freeText}
+                onChange={(e) => {
+                  setFreeText(e.target.value);
+                  setSearched(true);
+                }}
+                leftIcon={<Search size={16} />}
+              />
+
+              <Button variant="primary" onClick={handleSearch} leftIcon={<Search size={18} />}>
+                بحث
+              </Button>
+            </div>
+
+            <div className="flex gap-sm" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>سريع:</span>
+              {quickExamples.map((q) => (
+                <button
+                  key={q.label}
+                  type="button"
+                  onClick={() => {
+                    setBrand(q.brand);
+                    setModel(q.model);
+                    setRegion('');
+                    setFreeText('');
+                    setSearched(true);
+                  }}
+                  style={{
+                    padding: '4px 12px',
+                    borderRadius: 20,
+                    border: '1px solid var(--border-color)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          results.map((spec) => (
-            <SpecCard key={spec.id} spec={spec} mileageKm={mileageKm} onUseInMaintenance={handleUseInMaintenance} />
-          ))
-        )}
-      </div>
+
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            النتائج: <strong>{results.length}</strong> مواصفة
+            {mileageKm ? ` · المسافة المدخلة: ${mileageKm.toLocaleString()} كم` : ''}
+          </p>
+
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflow: 'auto', paddingBottom: 24 }}
+          >
+            {results.length === 0 ? (
+              <div className="glass-card empty-state" style={{ padding: 32 }}>
+                <p>لا توجد نتيجة. جرّب ماركة أخرى أو بحثاً أوسع.</p>
+              </div>
+            ) : (
+              results.map((spec) => (
+                <SpecCard key={spec.id} spec={spec} mileageKm={mileageKm} onUseInMaintenance={handleUseInMaintenance} />
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
