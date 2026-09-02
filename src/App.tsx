@@ -7,6 +7,7 @@ import { Pipeline } from './pages/Pipeline';
 import { Inventory } from './pages/Inventory';
 import { SpareParts } from './pages/SpareParts';
 import { Maintenance } from './pages/Maintenance';
+import { Purchases } from './pages/Purchases';
 import { OilFilters } from './pages/OilFilters';
 import { Bookings } from './pages/Bookings';
 import { Payments } from './pages/Payments';
@@ -44,6 +45,7 @@ function App() {
                 <Route path="clients" element={<Clients />} />
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="inventory" element={<Inventory />} />
+                <Route path="purchases" element={<Purchases />} />
                 <Route path="spare-parts" element={<SpareParts />} />
                 <Route path="maintenance" element={<Maintenance />} />
                 <Route path="oil-filters" element={<OilFilters />} />
@@ -55,7 +57,6 @@ function App() {
               </Route>
             </Route>
 
-            {/* الصفحة الافتراضية للزوار */}
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
           <InstallPrompt />

@@ -1,14 +1,20 @@
-const STORAGE_KEYS = {
+/**
+ * Local Storage Service — مفاتيح تخزين CRM السيارات
+ */
+
+export const STORAGE_KEYS = {
   CLIENTS: 'crm_clients',
+  INVENTORY: 'crm_inventory',
   ACTIVITIES: 'crm_activities',
   SETTINGS: 'crm_settings',
-  INVENTORY: 'crm_inventory',
   SPARE_PARTS: 'crm_spare_parts',
   PART_SALES: 'crm_part_sales',
   SERVICE_PROFILES: 'crm_service_profiles',
   MAINTENANCE_RECORDS: 'crm_maintenance_records',
   BOOKINGS: 'crm_bookings',
   PAYMENTS: 'crm_payments',
+  PURCHASES: 'crm_purchases',
+  SUPPLIER: 'crm_supplier',
 } as const;
 
 export const storage = {
