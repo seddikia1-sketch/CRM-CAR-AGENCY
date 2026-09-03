@@ -66,5 +66,3 @@ export const storage = {
     }
   },
 };
-
-export { STORAGE_KEYS };
