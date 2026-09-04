@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, Filter as FilterIcon, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Search, Filter as FilterIcon, ShoppingCart, AlertTriangle, PackagePlus } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { PartModal } from '../components/SpareParts/PartModal';
@@ -9,11 +9,21 @@ import { useSpareParts } from '../hooks/useSpareParts';
 import { useClients } from '../hooks/useClients';
 import { useInventory } from '../hooks/useInventory';
 import type { SparePart, SparePartFormData, PartCategory } from '../types';
+import { PurchaseItemKind } from '../types';
 import { PART_CATEGORIES } from '../utils/constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import '../components/Clients/ClientTable.css';
 
+const LOW_STOCK_PO_KEY = 'crm_po_from_low_stock';
+
+function categoryToPurchaseKind(cat: string): string {
+  if (cat === 'filters') return PurchaseItemKind.FILTER;
+  if (cat === 'oils') return PurchaseItemKind.OIL;
+  return PurchaseItemKind.SPARE_PART;
+}
+
 export const SpareParts: React.FC = () => {
+  const navigate = useNavigate();
   const { parts, sales, addPart, updatePart, deletePart, sellPart, searchParts, lowStockParts, stats } = useSpareParts();
   const { clients } = useClients();
   const { vehicles } = useInventory();
@@ -52,6 +62,26 @@ export const SpareParts: React.FC = () => {
     }
   };
 
+  const createPoFromLowStock = () => {
+    if (lowStockParts.length === 0) return;
+    const lines = lowStockParts.map((p) => {
+      const need = Math.max((p.minStock || 2) * 3 - (p.quantity || 0), 1);
+      return {
+        kind: categoryToPurchaseKind(p.category),
+        name: p.name,
+        reference: p.partNumber || '',
+        brand: p.brand || '',
+        model: '',
+        quantity: need,
+        unitCost: p.costPrice || 0,
+        expectedSellPrice: p.sellingPrice || undefined,
+        notes: `نقص مخزون — متوفر ${p.quantity} / حد أدنى ${p.minStock}`,
+      };
+    });
+    sessionStorage.setItem(LOW_STOCK_PO_KEY, JSON.stringify(lines));
+    navigate('/purchases?fromLowStock=1');
+  };
+
   const filtered = React.useMemo(() => {
     return searchParts(searchQuery, categoryFilter || undefined);
   }, [searchParts, searchQuery, categoryFilter, parts]);
@@ -62,14 +92,21 @@ export const SpareParts: React.FC = () => {
 
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
-      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0 }}>
+      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">قطع الغيار وخدمات ما بعد البيع</h1>
           <p className="page-description">إدارة مخزون القطع وبيعها وربطها بالعملاء والسيارات (VIN).</p>
         </div>
-        <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
-          إضافة قطعة
-        </Button>
+        <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          {lowStockParts.length > 0 && (
+            <Button variant="ghost" leftIcon={<PackagePlus size={18} />} onClick={createPoFromLowStock}>
+              أمر شراء من النقص ({lowStockParts.length})
+            </Button>
+          )}
+          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
+            إضافة قطعة
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
@@ -108,7 +145,10 @@ export const SpareParts: React.FC = () => {
             <span style={{ fontSize: '0.9rem', flex: 1 }}>
               تنبيه نقص: {lowStockParts.length} قطعة — اقترح طلب من الصين (3× الحد الأدنى)
             </span>
-            <Link to="/purchases" style={{ fontWeight: 700, fontSize: '0.85rem' }}>أمر شراء →</Link>
+            <Button variant="primary" leftIcon={<PackagePlus size={16} />} onClick={createPoFromLowStock}>
+              إنشاء أمر شراء
+            </Button>
+            <Link to="/purchases" style={{ fontWeight: 700, fontSize: '0.85rem' }}>المشتريات →</Link>
           </div>
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {lowStockParts.slice(0, 8).map((p) => {
