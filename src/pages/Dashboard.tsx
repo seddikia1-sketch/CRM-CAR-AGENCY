@@ -16,9 +16,10 @@ import {
 import { RecentActivity } from '../components/Dashboard/RecentActivity';
 import { FUNNEL_STAGES, DEFAULT_FOLLOW_UP_DAYS } from '../utils/constants';
 import { InventoryStatus } from '../types';
+import { vehicleProfit } from '../utils/vehicleFinance';
 import {
   Users, Package, Calendar, Wallet, MessageCircle, AlertCircle, Store,
-  Truck, ShoppingCart, Wrench, Sun, Droplets,
+  Truck, ShoppingCart, Wrench, Sun, Droplets, TrendingUp,
 } from 'lucide-react';
 
 function followUpMessage(name: string, interest?: string) {
@@ -63,6 +64,18 @@ export const Dashboard: React.FC = () => {
   );
   const attentionCount =
     followUps.length + todayBookings.length + lowStockParts.length + pipelineCars.length + dueServices.length;
+
+  const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const soldThisMonth = useMemo(
+    () =>
+      vehicles.filter(
+        (v) => v.status === 'sold' && v.soldAt && v.soldAt.slice(0, 7) === monthKey
+      ),
+    [vehicles, monthKey]
+  );
+  const monthCarProfit = soldThisMonth.reduce((s, v) => s + vehicleProfit(v), 0);
+  const totalCarProfit = inv.totalProfit || 0;
+  const totalPartsProfit = partStats.totalSalesProfit || 0;
 
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex' }}>
@@ -123,6 +136,28 @@ export const Dashboard: React.FC = () => {
           <p style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: 6, color: 'var(--accent-primary)' }}>{formatCurrency(stats.totalNegotiationValue)}</p>
           <small style={{ color: 'var(--text-secondary)' }}>قطع ناقصة: {partStats.lowStock}</small>
         </div>
+      </div>
+
+      <div className="glass-card" style={{
+        padding: '14px 16px',
+        display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
+        border: '1px solid rgba(34,197,94,0.25)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <TrendingUp size={20} color="#22c55e" />
+          <strong>ملخص مالي</strong>
+        </div>
+        <div style={{ fontSize: '0.9rem' }}>
+          ربح هذا الشهر (سيارات): <strong style={{ color: monthCarProfit >= 0 ? '#22c55e' : '#ef4444' }}>{formatCurrency(monthCarProfit)}</strong>
+          <span style={{ color: 'var(--text-secondary)' }}> · {soldThisMonth.length} صفقة</span>
+        </div>
+        <div style={{ fontSize: '0.9rem' }}>
+          إجمالي ربح السيارات: <strong style={{ color: '#22c55e' }}>{formatCurrency(totalCarProfit)}</strong>
+        </div>
+        <div style={{ fontSize: '0.9rem' }}>
+          إجمالي ربح القطع: <strong style={{ color: '#22c55e' }}>{formatCurrency(totalPartsProfit)}</strong>
+        </div>
+        <Link to="/reports" style={{ marginRight: 'auto', fontSize: '0.85rem', fontWeight: 700 }}>التقارير التفصيلية →</Link>
       </div>
 
       <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
