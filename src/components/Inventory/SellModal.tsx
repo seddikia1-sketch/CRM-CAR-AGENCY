@@ -7,13 +7,14 @@ import type { Client } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { vehicleTotalCost } from '../../utils/vehicleFinance';
 import { printVehicleSaleInvoice } from '../../utils/printInvoice';
+import { nextInvoiceNumber } from '../../utils/invoiceNumbers';
 
 interface SellModalProps {
   isOpen: boolean;
   onClose: () => void;
   vehicle: Vehicle | null;
   clients: Client[];
-  onConfirm: (clientId: string, clientName: string, finalPrice: number) => void;
+  onConfirm: (clientId: string, clientName: string, finalPrice: number, invoiceNumber?: string) => void;
 }
 
 export const SellModal: React.FC<SellModalProps> = ({
@@ -43,7 +44,8 @@ export const SellModal: React.FC<SellModalProps> = ({
 
   const handleConfirm = () => {
     if (!selectedClient) return;
-    onConfirm(selectedClient.id, selectedClient.name, finalPrice);
+    const invNo = nextInvoiceNumber('INV');
+    onConfirm(selectedClient.id, selectedClient.name, finalPrice, invNo);
     if (printAfter) {
       printVehicleSaleInvoice({
         vehicle: { ...vehicle, sellingPrice: finalPrice },
@@ -51,6 +53,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         clientPhone: selectedClient.phone,
         finalPrice,
         soldAt: new Date().toISOString(),
+        invoiceNumber: invNo,
       });
     }
     onClose();
@@ -129,7 +132,7 @@ export const SellModal: React.FC<SellModalProps> = ({
             {formatCurrency(profit)}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            بعد البيع تُخفى السيارة من المتجر وصفحة الهبوط تلقائياً
+            بعد البيع تُخفى السيارة من المتجر وصفحة الهبوط تلقائياً · يُحفظ رقم الفاتورة مع السجل
           </div>
         </div>
       </div>
