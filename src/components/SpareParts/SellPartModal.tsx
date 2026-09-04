@@ -6,6 +6,7 @@ import type { SparePart } from '../../types';
 import type { Client } from '../../types';
 import type { Vehicle } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
+import { printPartSaleInvoice } from '../../utils/printInvoice';
 
 interface SellPartModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
   const [vehicleId, setVehicleId] = useState('');
   const [manualVin, setManualVin] = useState('');
   const [notes, setNotes] = useState('');
+  const [printAfter, setPrintAfter] = useState(true);
 
   useEffect(() => {
     if (part) {
@@ -48,6 +50,7 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
       setVehicleId('');
       setManualVin('');
       setNotes('');
+      setPrintAfter(true);
     }
   }, [part]);
 
@@ -78,10 +81,28 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
       vin,
       label
     );
+
+    if (printAfter) {
+      printPartSaleInvoice({
+        part: {
+          name: part.name,
+          partNumber: part.partNumber,
+          brand: part.brand,
+        },
+        quantity,
+        unitPrice,
+        clientName: selectedClient?.name,
+        clientPhone: selectedClient?.phone,
+        vehicleLabel: label,
+        vehicleVin: vin,
+        notes,
+        soldAt: new Date().toISOString(),
+      });
+    }
+
     onClose();
   };
 
-  // سيارات لها VIN فقط
   const vehiclesWithVin = vehicles.filter((v) => v.vin && v.vin.trim());
 
   return (
@@ -98,7 +119,7 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
             onClick={handleConfirm}
             disabled={quantity < 1 || quantity > part.quantity}
           >
-            تأكيد البيع
+            تأكيد البيع · {formatCurrency(total)}
           </Button>
         </>
       }
@@ -178,6 +199,15 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="مثال: صيانة دورية / تغيير فلاتر"
         />
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
+          <input
+            type="checkbox"
+            checked={printAfter}
+            onChange={(e) => setPrintAfter(e.target.checked)}
+          />
+          طباعة فاتورة البيع بعد التأكيد
+        </label>
 
         <div style={{
           padding: '12px',
