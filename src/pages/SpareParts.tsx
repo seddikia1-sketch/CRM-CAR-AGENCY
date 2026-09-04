@@ -55,10 +55,11 @@ export const SpareParts: React.FC = () => {
     notes?: string,
     vehicleId?: string,
     vehicleVin?: string,
-    vehicleLabel?: string
+    vehicleLabel?: string,
+    invoiceNumber?: string
   ) => {
     if (sellPartData) {
-      sellPart(sellPartData.id, qty, price, clientId, clientName, notes, vehicleId, vehicleVin, vehicleLabel);
+      sellPart(sellPartData.id, qty, price, clientId, clientName, notes, vehicleId, vehicleVin, vehicleLabel, invoiceNumber);
     }
   };
 
@@ -140,7 +141,7 @@ export const SpareParts: React.FC = () => {
 
       {lowStockParts.length > 0 && (
         <div className="glass-card" style={{ padding: '12px 16px', border: '1px solid #f0932b' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <AlertTriangle size={20} color="#f0932b" />
             <span style={{ fontSize: '0.9rem', flex: 1 }}>
               تنبيه نقص: {lowStockParts.length} قطعة — اقترح طلب من الصين (3× الحد الأدنى)
@@ -282,6 +283,7 @@ export const SpareParts: React.FC = () => {
               <table className="client-table">
                 <thead>
                   <tr>
+                    <th>الفاتورة</th>
                     <th>القطعة</th>
                     <th>الكمية</th>
                     <th>الإجمالي</th>
@@ -294,6 +296,7 @@ export const SpareParts: React.FC = () => {
                 <tbody>
                   {sales.map((s) => (
                     <tr key={s.id}>
+                      <td style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.invoiceNumber || '—'}</td>
                       <td>{s.partName}</td>
                       <td>{s.quantity}</td>
                       <td>{formatCurrency(s.totalPrice)}</td>
