@@ -3,6 +3,7 @@ import { MoreHorizontal, Edit, Trash2, UserCheck } from 'lucide-react';
 import type { Vehicle } from '../../types';
 import { INVENTORY_STATUSES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/formatters';
+import { vehicleProfit, vehicleTotalCost } from '../../utils/vehicleFinance';
 import { Badge } from '../UI/Badge';
 import '../Clients/ClientTable.css';
 
@@ -62,7 +63,8 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         <tbody>
           {vehicles.map((v) => {
             const statusInfo = getStatusInfo(v.status);
-            const profit = (v.sellingPrice || 0) - (v.importPrice || 0);
+            const profit = vehicleProfit(v);
+            const cost = vehicleTotalCost(v);
             return (
               <tr key={v.id}>
                 <td>
@@ -76,8 +78,12 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </td>
                 <td>{v.mileage ? v.mileage.toLocaleString() + ' كم' : '-'}</td>
                 <td>{v.sellingPrice ? formatCurrency(v.sellingPrice) : '-'}</td>
-                <td style={{ color: profit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
-                  {v.status === 'sold' ? formatCurrency(profit) : '-'}
+                <td style={{ color: profit >= 0 ? '#22c55e' : '#ef4444', fontWeight: 600 }} title={`تكلفة: ${cost}`}>
+                  {v.status === 'sold' ? formatCurrency(profit) : (
+                    <span style={{ opacity: 0.75, fontSize: '0.85rem' }} title="ربح تقديري">
+                      ~{formatCurrency(profit)}
+                    </span>
+                  )}
                 </td>
                 <td>
                   {v.soldToClientName ? (

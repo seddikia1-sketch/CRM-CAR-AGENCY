@@ -2,6 +2,7 @@ import { storage, STORAGE_KEYS } from './storage';
 import type { Vehicle } from '../types';
 import type { CatalogCar } from '../data/storeCatalog';
 import { DEFAULT_CATALOG } from '../data/storeCatalog';
+import { isPublicInventoryStatus } from '../utils/vehicleFinance';
 
 /** تحويل سيارة المخزون إلى بطاقة عرض عامة */
 export function vehicleToCatalog(v: Vehicle): CatalogCar {
@@ -49,13 +50,18 @@ export function vehicleToCatalog(v: Vehicle): CatalogCar {
 
 /**
  * سيارات للعرض العام (هبوط + متجر):
- * من المخزون إن وُجدت غير مباعة، وإلا الكتالوج التجريبي.
+ * من المخزون غير المباعة فقط. إن وُجد مخزون كله مباع → قائمة فارغة (لا كتالوج تجريبي مضلل).
  */
 export function getPublicCars(): CatalogCar[] {
   const inventory = storage.get<Vehicle[]>(STORAGE_KEYS.INVENTORY) || [];
-  const publicOnes = inventory.filter((v) => v.status !== 'sold');
+  const publicOnes = inventory.filter(
+    (v) => v.status !== 'sold' && isPublicInventoryStatus(v.status)
+  );
   if (publicOnes.length > 0) {
     return publicOnes.map(vehicleToCatalog);
+  }
+  if (inventory.length > 0) {
+    return [];
   }
   return DEFAULT_CATALOG;
 }
@@ -76,30 +82,25 @@ export function savePublicLead(input: {
 
   const now = new Date().toISOString();
   const today = now.split('T')[0];
-  const time = new Date().toTimeString().slice(0, 5);
   const id = crypto.randomUUID();
 
+  const bookings = storage.get<any[]>(STORAGE_KEYS.BOOKINGS) || [];
   const booking = {
     id,
     clientName: name,
     clientPhone: phone,
-    type: 'consultation' as const,
-    status: 'pending' as const,
+    clientEmail: '',
+    type: 'consultation',
+    status: 'pending',
     date: today,
-    time,
+    time: '10:00',
     vehicleBrand: input.vehicleBrand || '',
     vehicleModel: input.vehicleModel || '',
     vehicleId: input.vehicleId || '',
-    notes:
-      input.notes ||
-      `طلب من الموقع — اشتري الآن / احجز${
-        input.vehicleBrand ? ` · ${input.vehicleBrand} ${input.vehicleModel || ''}` : ''
-      }`,
+    notes: input.notes || 'طلب من المتجر / صفحة الهبوط',
     createdAt: now,
     updatedAt: now,
   };
-
-  const list = storage.get<typeof booking[]>(STORAGE_KEYS.BOOKINGS) || [];
-  storage.set(STORAGE_KEYS.BOOKINGS, [booking, ...list]);
+  storage.set(STORAGE_KEYS.BOOKINGS, [booking, ...bookings]);
   return { ok: true, id };
 }
