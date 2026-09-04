@@ -68,7 +68,8 @@ export function useSpareParts() {
     notes?: string,
     vehicleId?: string,
     vehicleVin?: string,
-    vehicleLabel?: string
+    vehicleLabel?: string,
+    invoiceNumber?: string
   ) => {
     const part = parts.find((p) => p.id === partId);
     if (!part || part.quantity < quantity) return null;
@@ -93,6 +94,7 @@ export function useSpareParts() {
       vehicleLabel,
       notes: notes || '',
       soldAt: new Date().toISOString(),
+      invoiceNumber,
     };
 
     const updatedParts = parts.map((p) =>
@@ -120,7 +122,6 @@ export function useSpareParts() {
     return result;
   }, [parts]);
 
-  /** تقارير أرباح قطع الغيار الشهرية */
   const getMonthlyPartsProfits = useCallback((): MonthlyProfit[] => {
     const map = new Map<string, MonthlyProfit>();
 
