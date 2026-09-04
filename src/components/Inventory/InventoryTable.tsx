@@ -48,11 +48,14 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
   const reprintInvoice = (v: Vehicle) => {
     if (!v.soldToClientName) return;
+    const year = v.soldAt ? new Date(v.soldAt).getFullYear() : new Date().getFullYear();
+    const stableNo = `INV-${year}-R${v.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
     printVehicleSaleInvoice({
       vehicle: v,
       clientName: v.soldToClientName,
       finalPrice: v.sellingPrice || 0,
       soldAt: v.soldAt,
+      invoiceNumber: stableNo,
     });
     setActiveMenu(null);
   };
