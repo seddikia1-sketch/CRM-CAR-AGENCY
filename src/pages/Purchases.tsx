@@ -10,6 +10,7 @@ import {
   Edit3,
   Building2,
   Printer,
+  Download,
 } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
@@ -30,6 +31,7 @@ import {
 } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { printPurchaseOrder } from '../utils/printPurchaseOrder';
+import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 
 type LineForm = Omit<PurchaseLineItem, 'id' | 'linkedInventoryId' | 'linkedPartId'>;
 
@@ -248,6 +250,61 @@ export const Purchases: React.FC = () => {
     }
   };
 
+  const exportOrdersCsv = () => {
+    const list = filtered.length ? filtered : orders;
+    downloadCsv(
+      `اوامر_شراء_${csvTimestamp()}.csv`,
+      [
+        'رقم الطلب', 'التاريخ', 'الحالة', 'الحاوية', 'الوصول المتوقع',
+        'عدد الأصناف', 'الإجمالي', 'المورد', 'ملاحظات الشحن', 'ملاحظات',
+      ],
+      list.map((o) => [
+        o.orderNumber,
+        o.orderDate ? new Date(o.orderDate).toLocaleDateString('ar-DZ') : '',
+        PURCHASE_STATUS_LABELS[o.status] || o.status,
+        o.containerNumber || '',
+        o.expectedArrival ? new Date(o.expectedArrival).toLocaleDateString('ar-DZ') : '',
+        o.items.length,
+        o.totalCost,
+        o.supplierName || '',
+        o.shippingNotes || '',
+        o.notes || '',
+      ])
+    );
+  };
+
+  const exportLinesCsv = () => {
+    const list = filtered.length ? filtered : orders;
+    const rows: (string | number)[][] = [];
+    list.forEach((o) => {
+      o.items.forEach((i) => {
+        rows.push([
+          o.orderNumber,
+          o.orderDate ? new Date(o.orderDate).toLocaleDateString('ar-DZ') : '',
+          PURCHASE_STATUS_LABELS[o.status] || o.status,
+          PURCHASE_KIND_LABELS[i.kind] || i.kind,
+          i.name,
+          i.reference || '',
+          i.brand || '',
+          i.model || '',
+          i.quantity,
+          i.unitCost,
+          i.quantity * i.unitCost,
+          i.expectedSellPrice || '',
+          o.containerNumber || '',
+        ]);
+      });
+    });
+    downloadCsv(
+      `تفاصيل_اوامر_شراء_${csvTimestamp()}.csv`,
+      [
+        'رقم الطلب', 'تاريخ الطلب', 'الحالة', 'النوع', 'الصنف', 'مرجع/VIN',
+        'الماركة', 'الموديل', 'الكمية', 'تكلفة الوحدة', 'الإجمالي', 'سعر بيع متوقع', 'الحاوية',
+      ],
+      rows
+    );
+  };
+
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
@@ -258,6 +315,12 @@ export const Purchases: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Button variant="ghost" leftIcon={<Download size={18} />} onClick={exportOrdersCsv} disabled={orders.length === 0}>
+            تصدير الطلبات
+          </Button>
+          <Button variant="ghost" leftIcon={<Download size={18} />} onClick={exportLinesCsv} disabled={orders.length === 0}>
+            تصدير التفاصيل
+          </Button>
           <Button variant="ghost" leftIcon={<Building2 size={18} />} onClick={() => { setSupForm(supplier); setSupplierOpen(true); }}>
             المورد
           </Button>
