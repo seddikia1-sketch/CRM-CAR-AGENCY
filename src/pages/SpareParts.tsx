@@ -9,14 +9,17 @@ import {
   PackagePlus,
   Printer,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { PartModal } from '../components/SpareParts/PartModal';
 import { SellPartModal } from '../components/SpareParts/SellPartModal';
+import { SmartPartRequestModal } from '../components/SpareParts/SmartPartRequestModal';
 import { useSpareParts } from '../hooks/useSpareParts';
 import { useClients } from '../hooks/useClients';
 import { useInventory } from '../hooks/useInventory';
+import { usePurchases } from '../hooks/usePurchases';
 import type { SparePart, SparePartFormData, PartCategory, PartSale } from '../types';
 import { PurchaseItemKind } from '../types';
 import { PART_CATEGORIES } from '../utils/constants';
@@ -38,12 +41,14 @@ export const SpareParts: React.FC = () => {
   const { parts, sales, addPart, updatePart, deletePart, sellPart, searchParts, lowStockParts, stats } = useSpareParts();
   const { clients } = useClients();
   const { vehicles } = useInventory();
+  const { supplier } = usePurchases();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<PartCategory | ''>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPart, setEditingPart] = useState<SparePart | undefined>(undefined);
   const [sellPartData, setSellPartData] = useState<SparePart | null>(null);
+  const [smartOpen, setSmartOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'stock' | 'sales'>('stock');
 
   const handleOpenModal = (part?: SparePart) => {
@@ -152,18 +157,41 @@ export const SpareParts: React.FC = () => {
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">قطع الغيار وخدمات ما بعد البيع</h1>
-          <p className="page-description">إدارة مخزون القطع وبيعها وربطها بالعملاء والسيارات (VIN).</p>
+          <p className="page-description">
+            مخزون · بيع · طلب ذكي بالـ VIN والكتالوج · تجهيز أمر شراء للمورد.
+          </p>
         </div>
         <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Button variant="primary" leftIcon={<Sparkles size={18} />} onClick={() => setSmartOpen(true)}>
+            طلب قطعة ذكي
+          </Button>
           {lowStockParts.length > 0 && (
             <Button variant="ghost" leftIcon={<PackagePlus size={18} />} onClick={createPoFromLowStock}>
               أمر شراء من النقص ({lowStockParts.length})
             </Button>
           )}
-          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
+          <Button variant="ghost" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
             إضافة قطعة
           </Button>
         </div>
+      </div>
+
+      <div className="glass-card" style={{
+        padding: '12px 16px',
+        border: '1px solid rgba(124,108,240,0.3)',
+        background: 'rgba(124,108,240,0.08)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 10,
+        alignItems: 'center',
+      }}>
+        <Sparkles size={18} color="#a89bff" />
+        <span style={{ flex: 1, fontSize: '0.9rem' }}>
+          <strong>طلب قطعة ذكي:</strong> أدخل VIN السيارة + اسم القطعة (أو صورة كمرجع) → النظام يعرض أرقام OEM من الكتالوج ويجهّز أمر شراء / رسالة واتساب للمورد.
+        </span>
+        <Button variant="primary" leftIcon={<Sparkles size={16} />} onClick={() => setSmartOpen(true)}>
+          ابدأ الطلب
+        </Button>
       </div>
 
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
@@ -270,7 +298,7 @@ export const SpareParts: React.FC = () => {
 
           <div className="table-container">
             {filtered.length === 0 ? (
-              <div className="empty-state"><p>لا توجد قطع غيار. أضف قطعة جديدة.</p></div>
+              <div className="empty-state"><p>لا توجد قطع غيار. أضف قطعة جديدة أو استخدم الطلب الذكي.</p></div>
             ) : (
               <table className="client-table">
                 <thead>
@@ -405,6 +433,14 @@ export const SpareParts: React.FC = () => {
         clients={clients}
         vehicles={vehicles}
         onConfirm={handleSellConfirm}
+      />
+
+      <SmartPartRequestModal
+        isOpen={smartOpen}
+        onClose={() => setSmartOpen(false)}
+        vehicles={vehicles}
+        parts={parts}
+        supplier={supplier}
       />
     </div>
   );
