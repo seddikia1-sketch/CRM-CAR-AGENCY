@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter as FilterIcon, MessageCircle } from 'lucide-react';
+import { Plus, Search, Filter as FilterIcon, MessageCircle, Download } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { ClientTable } from '../components/Clients/ClientTable';
@@ -8,7 +8,7 @@ import { useClients } from '../hooks/useClients';
 import { FunnelStage } from '../types';
 import type { Client } from '../types';
 import { FUNNEL_STAGES, DEFAULT_FOLLOW_UP_DAYS } from '../utils/constants';
-import { daysSince } from '../utils/formatters';
+import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 
 export const Clients: React.FC = () => {
   const {
@@ -57,6 +57,26 @@ export const Clients: React.FC = () => {
     return list;
   }, [searchClients, searchQuery, stageFilter, clients, followOnly, stats.followUpNeeded]);
 
+  const exportCsv = () => {
+    const list = filteredClients.length ? filteredClients : clients;
+    downloadCsv(
+      `عملاء_${csvTimestamp()}.csv`,
+      ['الاسم', 'الهاتف', 'البريد', 'المرحلة', 'المصدر', 'الاهتمام', 'الماركة', 'الموديل', 'آخر تواصل', 'ملاحظات'],
+      list.map((c) => [
+        c.name,
+        c.phone,
+        c.email || '',
+        FUNNEL_STAGES.find((s) => s.key === c.funnelStage)?.label || c.funnelStage,
+        c.source || '',
+        c.vehicleInterest || '',
+        c.brand || '',
+        c.model || '',
+        c.lastContactAt ? new Date(c.lastContactAt).toLocaleDateString('ar-DZ') : '',
+        c.notes || '',
+      ])
+    );
+  };
+
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
@@ -72,9 +92,14 @@ export const Clients: React.FC = () => {
             )}
           </p>
         </div>
-        <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
-          عميل جديد
-        </Button>
+        <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Button variant="ghost" leftIcon={<Download size={18} />} onClick={exportCsv}>
+            تصدير CSV
+          </Button>
+          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
+            عميل جديد
+          </Button>
+        </div>
       </div>
 
       <div className="glass-card flex-col" style={{ flex: 1, display: 'flex' }}>
