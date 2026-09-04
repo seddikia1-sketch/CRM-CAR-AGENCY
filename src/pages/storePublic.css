@@ -1,0 +1,695 @@
+/* ===== صفحات عامة: المتجر + الهبوط ===== */
+
+.pub-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #08080d;
+  color: #f1f1f6;
+  font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+  padding-bottom: 80px;
+}
+
+.pub-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(8, 8, 13, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 10px 16px;
+}
+
+.pub-topbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pub-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.pub-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c6cf0, #2dd4bf);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(124, 108, 240, 0.35);
+}
+
+.pub-brand-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.pub-brand-sub {
+  font-size: 0.72rem;
+  color: #8b8b9e;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.pub-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pub-icon-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 9px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pub-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.pub-badge-count {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  background: linear-gradient(135deg, #34d399, #22c55e);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+.pub-wa-btn {
+  background: #25d366;
+  color: #fff;
+  padding: 9px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+}
+
+.pub-cta-sm {
+  background: linear-gradient(135deg, #34d399, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+}
+
+/* شريط علوي ترويجي */
+.pub-promo-bar {
+  background: linear-gradient(90deg, #6d5ef7, #2dd4bf);
+  color: #fff;
+  text-align: center;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* بطل الصفحة */
+.pub-hero {
+  padding: 28px 16px 32px;
+  background:
+    radial-gradient(ellipse 70% 80% at 20% -20%, rgba(124, 108, 240, 0.28), transparent 55%),
+    radial-gradient(ellipse 50% 50% at 90% 10%, rgba(45, 212, 191, 0.12), transparent 50%),
+    #08080d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pub-hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.pub-hero-badge {
+  display: inline-block;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.pub-hero h1 {
+  font-size: clamp(1.45rem, 4.5vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1.3;
+  margin: 0 0 12px;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.pub-hero p {
+  color: #9494a8;
+  max-width: 520px;
+  line-height: 1.7;
+  margin: 0 0 18px;
+  font-size: 0.95rem;
+}
+
+.pub-hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pub-btn-primary {
+  background: linear-gradient(135deg, #34d399, #16a34a);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 22px;
+  font-weight: 900;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.pub-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(34, 197, 94, 0.4);
+}
+
+.pub-btn-ghost {
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f6;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pub-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pub-trust-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pub-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* حاوية المحتوى */
+.pub-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+.pub-container-narrow {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px;
+}
+
+/* بحث */
+.pub-search {
+  position: relative;
+  margin-top: 10px;
+}
+
+.pub-search input {
+  width: 100%;
+  padding: 12px 42px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f6;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pub-search input:focus {
+  border-color: rgba(124, 108, 240, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 108, 240, 0.12);
+}
+
+.pub-search input::placeholder {
+  color: #6b6b80;
+}
+
+.pub-search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b6b80;
+  pointer-events: none;
+}
+
+/* تبويبات */
+.pub-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pub-tab {
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f1f1f6;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.pub-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pub-tab.active {
+  border-color: rgba(124, 108, 240, 0.45);
+  background: rgba(124, 108, 240, 0.14);
+  box-shadow: 0 0 0 1px rgba(124, 108, 240, 0.15);
+}
+
+.pub-tab-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+  color: #a78bfa;
+}
+
+.pub-tab-label {
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.pub-tab-count {
+  font-size: 0.75rem;
+  color: #8b8b9e;
+  margin-top: 2px;
+}
+
+/* شيبس الماركات */
+.pub-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pub-chip {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8c8d8;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.pub-chip.active {
+  background: rgba(124, 108, 240, 0.2);
+  border-color: rgba(124, 108, 240, 0.5);
+  color: #c4b5fd;
+}
+
+.pub-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.pub-filters select,
+.pub-filters input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f6;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.pub-filters select:focus,
+.pub-filters input:focus {
+  border-color: rgba(124, 108, 240, 0.45);
+}
+
+/* شبكة ثقة */
+.pub-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.pub-trust-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(34, 197, 94, 0.07);
+  border: 1px solid rgba(34, 197, 94, 0.18);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* شبكة المنتجات */
+.pub-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.pub-section-title {
+  font-weight: 900;
+  font-size: 1.1rem;
+  margin: 0 0 14px;
+  color: #fff;
+}
+
+.pub-section-title span {
+  color: #8b8b9e;
+  font-weight: 600;
+}
+
+.pub-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 36px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  color: #9494a8;
+}
+
+/* بطاقة منتج */
+.pub-product {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pub-product-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pub-product-actions .buy {
+  flex: 1.15;
+  background: linear-gradient(135deg, #34d399, #16a34a);
+  color: #fff;
+  padding: 11px 8px;
+  border-radius: 12px;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+}
+
+.pub-product-actions .wa {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #25d366;
+  color: #fff;
+  padding: 11px 8px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.pub-product-actions .cart {
+  flex: 0.85;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8e8f0;
+  padding: 11px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+
+/* عروض */
+.pub-offer-card {
+  background: linear-gradient(165deg, rgba(26, 26, 40, 0.95), rgba(16, 16, 24, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pub-offer-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: linear-gradient(135deg, #7c6cf0, #5b4fd4);
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+/* تذييل */
+.pub-footer {
+  margin-top: 40px;
+  padding: 24px 0 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #8b8b9e;
+  font-size: 0.85rem;
+}
+
+.pub-footer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.pub-footer strong {
+  color: #f1f1f6;
+  font-weight: 800;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pub-footer a {
+  color: #8b8b9e;
+}
+
+.pub-footer a:hover {
+  color: #c4b5fd;
+}
+
+.pub-contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* زر واتساب عائم */
+.pub-fab-wa {
+  position: fixed;
+  bottom: 20px;
+  left: 18px;
+  z-index: 50;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 28px rgba(37, 211, 102, 0.45);
+  transition: transform 0.15s;
+}
+
+.pub-fab-wa:hover {
+  transform: scale(1.06);
+}
+
+/* بطاقات مزايا / آراء */
+.pub-feature-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pub-feature-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pub-feature-item strong {
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #f1f1f6;
+  display: block;
+}
+
+.pub-feature-item span {
+  font-size: 0.8rem;
+  color: #8b8b9e;
+}
+
+.pub-review {
+  background: rgba(12, 12, 18, 0.6);
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pub-review p {
+  font-size: 0.9rem;
+  color: #c8c8d8;
+  margin: 6px 0;
+  line-height: 1.55;
+}
+
+.pub-review .name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+/* نموذج */
+.pub-form-section {
+  padding: 32px 16px 48px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.45));
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pub-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pub-field {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f1f1f6;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pub-field:focus {
+  border-color: rgba(124, 108, 240, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 108, 240, 0.12);
+}
+
+.pub-field option {
+  background: #15151f;
+  color: #f1f1f6;
+}
+
+.pub-error {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #f87171;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+
+.pub-success-box {
+  text-align: center;
+  padding: 12px 0;
+}
+
+@media (max-width: 600px) {
+  .pub-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pub-brand-sub {
+    max-width: 120px;
+  }
+
+  .pub-hero {
+    padding: 22px 14px 26px;
+  }
+}
