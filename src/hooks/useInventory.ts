@@ -62,7 +62,12 @@ export function useInventory() {
     return vehicle;
   }, [vehicles, save]);
 
-  const updateVehicle = useCallback((id: string, data: Partial<VehicleFormData & { soldToClientId?: string; soldToClientName?: string; soldAt?: string }>) => {
+  const updateVehicle = useCallback((id: string, data: Partial<VehicleFormData & {
+    soldToClientId?: string;
+    soldToClientName?: string;
+    soldAt?: string;
+    invoiceNumber?: string;
+  }>) => {
     const updated = vehicles.map((v) => {
       if (v.id !== id) return v;
       return normalizeVehicle({ ...v, ...data, updatedAt: new Date().toISOString() } as Vehicle);
@@ -78,7 +83,8 @@ export function useInventory() {
     vehicleId: string,
     clientId: string,
     clientName: string,
-    finalPrice?: number
+    finalPrice?: number,
+    invoiceNumber?: string
   ) => {
     const now = new Date().toISOString();
     const updated = vehicles.map((v) => {
@@ -90,6 +96,7 @@ export function useInventory() {
         soldToClientId: clientId,
         soldToClientName: clientName,
         soldAt: now,
+        invoiceNumber: invoiceNumber || v.invoiceNumber,
         updatedAt: now,
       };
     });
@@ -112,7 +119,8 @@ export function useInventory() {
           v.vin.toLowerCase().includes(q) ||
           v.containerNumber.toLowerCase().includes(q) ||
           v.color.toLowerCase().includes(q) ||
-          (v.soldToClientName || '').toLowerCase().includes(q)
+          (v.soldToClientName || '').toLowerCase().includes(q) ||
+          (v.invoiceNumber || '').toLowerCase().includes(q)
       );
     }
     if (statusFilter) result = result.filter((v) => v.status === statusFilter);
