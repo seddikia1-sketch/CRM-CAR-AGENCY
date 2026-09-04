@@ -8,15 +8,14 @@
 
 .layout-content {
   flex: 1;
-  margin-right: 260px; /* RTL: sidebar on the right conceptually but we keep left margin for LTR sidebar */
-  margin-left: 260px;
+  margin-left: var(--sidebar-width, 268px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
   background-image:
-    radial-gradient(circle at 15% 50%, rgba(108, 92, 231, 0.05), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(0, 206, 201, 0.05), transparent 25%);
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(124, 108, 240, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(45, 212, 191, 0.06), transparent 45%);
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -24,45 +23,50 @@
 
 .main-content {
   flex: 1;
-  padding: var(--spacing-xl);
+  padding: 1.35rem 1.5rem 2rem;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .sidebar-overlay {
   display: none;
 }
 
-/* ===== جوال وآيباد ===== */
 @media (max-width: 900px) {
   .layout-content {
     margin-left: 0;
-    margin-right: 0;
   }
 
   .main-content {
-    padding: 12px 14px 24px;
+    padding: 12px 14px 28px;
   }
 
   .sidebar-overlay {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
     z-index: 40;
   }
 
-  /* القائمة تظهر كدرج */
   .layout .sidebar {
     position: fixed;
     top: 0;
     right: 0;
+    left: auto;
     bottom: 0;
     z-index: 50;
     transform: translateX(105%);
-    transition: transform 0.25s ease;
-    width: min(280px, 85vw) !important;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    width: min(300px, 88vw) !important;
+    border-right: none;
+    border-left: 1px solid var(--glass-border);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
   }
 
   .layout.sidebar-open .sidebar {
@@ -72,15 +76,15 @@
 
 @media (max-width: 600px) {
   .main-content {
-    padding: 10px 10px 20px;
+    padding: 10px 10px 24px;
   }
 
   .page-title {
-    font-size: 1.35rem !important;
+    font-size: 1.3rem !important;
   }
 
   .glass-card {
-    border-radius: 12px;
+    border-radius: 14px;
   }
 
   .client-table {
