@@ -19,7 +19,7 @@ import { InventoryStatus } from '../types';
 import { vehicleProfit } from '../utils/vehicleFinance';
 import {
   Users, Package, Calendar, Wallet, MessageCircle, AlertCircle, Store,
-  Truck, ShoppingCart, Wrench, Sun, Droplets, TrendingUp,
+  Truck, ShoppingCart, Wrench, Sun, Droplets, TrendingUp, HardDrive,
 } from 'lucide-react';
 
 function followUpMessage(name: string, interest?: string) {
@@ -77,6 +77,16 @@ export const Dashboard: React.FC = () => {
   const totalCarProfit = inv.totalProfit || 0;
   const totalPartsProfit = partStats.totalSalesProfit || 0;
 
+  const backupWarning = useMemo(() => {
+    const raw = localStorage.getItem('crm_last_backup_at');
+    if (!raw) return { show: true, days: null as number | null, label: 'لم يتم عمل نسخة احتياطية بعد' };
+    const t = new Date(raw).getTime();
+    if (Number.isNaN(t)) return { show: true, days: null, label: 'لم يتم عمل نسخة احتياطية بعد' };
+    const days = Math.floor((Date.now() - t) / 86400000);
+    if (days >= 7) return { show: true, days, label: `آخر نسخة منذ ${days} يوماً` };
+    return { show: false, days, label: '' };
+  }, []);
+
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex' }}>
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 'var(--spacing-md)', flexWrap: 'wrap', gap: 12 }}>
@@ -110,6 +120,20 @@ export const Dashboard: React.FC = () => {
           <span>{pipelineCars.length} شحن/حجز</span><span>·</span>
           <span>{lowStockParts.length} قطعة ناقصة</span><span>·</span>
           <span>{dueServices.length} صيانة</span>
+        </div>
+      )}
+
+      {backupWarning.show && (
+        <div className="glass-card" style={{
+          padding: '12px 16px', border: '1px solid rgba(59,130,246,0.4)',
+          display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
+          background: 'rgba(59,130,246,0.08)',
+        }}>
+          <HardDrive size={18} color="#3b82f6" />
+          <span style={{ flex: 1 }}>
+            <strong>نسخ احتياطي:</strong> {backupWarning.label}. البيانات على هذا المتصفح فقط.
+          </span>
+          <Link to="/settings" style={{ fontWeight: 700, fontSize: '0.85rem' }}>الإعدادات → تصدير</Link>
         </div>
       )}
 
