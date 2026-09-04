@@ -7,6 +7,7 @@ import type { Client } from '../../types';
 import type { Vehicle } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { printPartSaleInvoice } from '../../utils/printInvoice';
+import { nextPartInvoiceNumber } from '../../utils/invoiceNumbers';
 
 interface SellPartModalProps {
   isOpen: boolean;
@@ -22,7 +23,8 @@ interface SellPartModalProps {
     notes?: string,
     vehicleId?: string,
     vehicleVin?: string,
-    vehicleLabel?: string
+    vehicleLabel?: string,
+    invoiceNumber?: string
   ) => void;
 }
 
@@ -71,6 +73,8 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
       ? `VIN: ${manualVin}`
       : undefined;
 
+    const invNo = nextPartInvoiceNumber();
+
     onConfirm(
       quantity,
       unitPrice,
@@ -79,7 +83,8 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
       notes,
       selectedVehicle?.id,
       vin,
-      label
+      label,
+      invNo
     );
 
     if (printAfter) {
@@ -97,6 +102,7 @@ export const SellPartModal: React.FC<SellPartModalProps> = ({
         vehicleVin: vin,
         notes,
         soldAt: new Date().toISOString(),
+        invoiceNumber: invNo,
       });
     }
 
