@@ -3,7 +3,13 @@ import { MoreHorizontal, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { FunnelStage } from '../../types';
 import type { Client } from '../../types';
 import { STAGE_MAP, SOURCE_MAP } from '../../utils/constants';
-import { formatCurrency, formatDate, formatPhone, getWhatsAppLink } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatPhone,
+  getWhatsAppLink,
+  formatRelativeTime,
+} from '../../utils/formatters';
 import { Badge } from '../UI/Badge';
 import './ClientTable.css';
 
@@ -12,6 +18,16 @@ interface ClientTableProps {
   onEdit: (client: Client) => void;
   onDelete: (id: string) => void;
   onUpdateStage: (id: string, stage: FunnelStage) => void;
+  onWhatsApp?: (client: Client) => void;
+}
+
+function clientWaMessage(client: Client) {
+  const car =
+    [client.brand, client.model].filter(Boolean).join(' ') || client.vehicleInterest || '';
+  if (car) {
+    return `السلام عليكم ${client.name}،\nبخصوص ${car} — هل يناسبكم ترتيب معاينة أو إرسال التفاصيل؟\nالمعرض: https://seddikia1-sketch.github.io/CRM-CAR-AGENCY/#/store`;
+  }
+  return `السلام عليكم ${client.name}،\nنتواصل معكم من معرض السيارات بتندوف.\nالمعرض: https://seddikia1-sketch.github.io/CRM-CAR-AGENCY/#/store`;
 }
 
 export const ClientTable: React.FC<ClientTableProps> = ({
@@ -19,6 +35,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   onEdit,
   onDelete,
   onUpdateStage,
+  onWhatsApp,
 }) => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
@@ -60,7 +77,10 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           {clients.map((client) => {
             const stage = STAGE_MAP[client.funnelStage];
             const source = SOURCE_MAP[client.source];
-            const carInfo = [client.brand, client.model, client.year].filter(Boolean).join(' ') || client.vehicleInterest || '-';
+            const carInfo =
+              [client.brand, client.model, client.year].filter(Boolean).join(' ') ||
+              client.vehicleInterest ||
+              '-';
 
             return (
               <tr key={client.id}>
@@ -80,12 +100,18 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                   <div>
                     <div>{carInfo}</div>
                     {client.mileage > 0 && (
-                      <small style={{ color: 'var(--text-secondary)' }}>{client.mileage.toLocaleString()} كم</small>
+                      <small style={{ color: 'var(--text-secondary)' }}>
+                        {client.mileage.toLocaleString()} كم
+                      </small>
                     )}
                   </div>
                 </td>
                 <td>
-                  {client.condition === 'new' ? '🆕 جديدة' : client.condition === 'under_3_years' ? '📅 أقل من 3 سنوات' : '-'}
+                  {client.condition === 'new'
+                    ? '🆕 جديدة'
+                    : client.condition === 'under_3_years'
+                      ? '📅 أقل من 3 سنوات'
+                      : '-'}
                 </td>
                 <td>{client.estimatedValue ? formatCurrency(client.estimatedValue) : '-'}</td>
                 <td>
@@ -98,16 +124,24 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     {source?.emoji} {source?.label}
                   </span>
                 </td>
-                <td>{formatDate(client.lastContactAt)}</td>
+                <td>
+                  <div>{formatDate(client.lastContactAt)}</div>
+                  <small style={{ color: 'var(--text-secondary)' }}>
+                    {formatRelativeTime(client.lastContactAt)}
+                  </small>
+                </td>
                 <td className="action-column relative">
                   <div className="action-buttons">
                     <a
-                      href={getWhatsAppLink(client.phone)}
+                      href={getWhatsAppLink(client.phone, clientWaMessage(client))}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="icon-btn whatsapp-btn"
-                      title="مراسلة على واتساب"
-                      onClick={(e) => e.stopPropagation()}
+                      title="واتساب + تحديث آخر تواصل"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onWhatsApp?.(client);
+                      }}
                     >
                       <MessageCircle size={18} />
                     </a>
@@ -117,11 +151,39 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     </button>
 
                     {activeMenu === client.id && (
-                      <div className="action-menu glass-card" onClick={(e) => e.stopPropagation()}>
-                        <button className="menu-item" onClick={() => { onEdit(client); setActiveMenu(null); }}>
+                      <div
+                        className="action-menu glass-card"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            onEdit(client);
+                            setActiveMenu(null);
+                          }}
+                        >
                           <Edit size={16} /> تعديل
                         </button>
-                        <button className="menu-item danger" onClick={() => { onDelete(client.id); setActiveMenu(null); }}>
+                        <button
+                          className="menu-item"
+                          onClick={() => {
+                            onWhatsApp?.(client);
+                            window.open(
+                              getWhatsAppLink(client.phone, clientWaMessage(client)),
+                              '_blank'
+                            );
+                            setActiveMenu(null);
+                          }}
+                        >
+                          <MessageCircle size={16} /> واتساب
+                        </button>
+                        <button
+                          className="menu-item danger"
+                          onClick={() => {
+                            onDelete(client.id);
+                            setActiveMenu(null);
+                          }}
+                        >
                           <Trash2 size={16} /> حذف
                         </button>
                       </div>
