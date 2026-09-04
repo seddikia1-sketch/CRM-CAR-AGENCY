@@ -7,13 +7,23 @@ import { InventoryModal } from '../components/Inventory/InventoryModal';
 import { SellModal } from '../components/Inventory/SellModal';
 import { useInventory } from '../hooks/useInventory';
 import { useClients } from '../hooks/useClients';
-import type { Vehicle, VehicleFormData, InventoryStatus } from '../types';
+import { InventoryStatus } from '../types';
+import type { Vehicle, VehicleFormData } from '../types';
 import { INVENTORY_STATUSES } from '../utils/constants';
 import { formatCurrency } from '../utils/formatters';
 
 export const Inventory: React.FC = () => {
-  const { vehicles, addVehicle, updateVehicle, deleteVehicle, sellVehicle, searchVehicles, stats } = useInventory();
+  const {
+    vehicles,
+    addVehicle,
+    updateVehicle,
+    deleteVehicle,
+    sellVehicle,
+    searchVehicles,
+    stats,
+  } = useInventory();
   const { clients } = useClients();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<InventoryStatus | ''>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,6 +42,12 @@ export const Inventory: React.FC = () => {
 
   const handleSave = (data: VehicleFormData) => {
     if (editingVehicle) {
+      if (editingVehicle.status === 'sold' && data.status !== 'sold') {
+        const ok = window.confirm(
+          'هذه السيارة مسجّلة كمباعة.\nإعادتها للمتاح ستظهرها في المتجر مجدداً.\nهل أنت متأكد؟'
+        );
+        if (!ok) return;
+      }
       updateVehicle(editingVehicle.id, data);
     } else {
       addVehicle(data);
@@ -42,6 +58,7 @@ export const Inventory: React.FC = () => {
   const handleSellConfirm = (clientId: string, clientName: string, finalPrice: number) => {
     if (sellVehicleData) {
       sellVehicle(sellVehicleData.id, clientId, clientName, finalPrice);
+      setSellVehicleData(null);
     }
   };
 
@@ -51,10 +68,12 @@ export const Inventory: React.FC = () => {
 
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
-      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0 }}>
+      <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">المخزون</h1>
-          <p className="page-description">إدارة مخزون السيارات الصينية (جديدة وأقل من 3 سنوات).</p>
+          <p className="page-description">
+            السيارات + المصاريف (شحن/جمرك/إصلاح) + ربح الصفقة. المباعة تُخفى من المتجر تلقائياً.
+          </p>
         </div>
         <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
           إضافة سيارة
@@ -63,12 +82,16 @@ export const Inventory: React.FC = () => {
 
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
         <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>إجمالي السيارات</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.total}</div>
-        </div>
-        <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>متاحة</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#22c55e' }}>{stats.available}</div>
+        </div>
+        <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>في الشحن / جمرك</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{stats.inTransit + stats.customs}</div>
+        </div>
+        <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>محجوزة</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.reserved}</div>
         </div>
         <div className="glass-card" style={{ padding: '12px 20px', flex: '1 1 140px' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>مباعة</div>
@@ -81,8 +104,8 @@ export const Inventory: React.FC = () => {
       </div>
 
       <div className="glass-card flex-col" style={{ flex: 1, display: 'flex' }}>
-        <div className="flex gap-md justify-between items-center" style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ width: '280px' }}>
+        <div className="flex gap-md justify-between items-center" style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+          <div style={{ width: 'min(280px, 100%)' }}>
             <Input
               placeholder="بحث بالماركة أو الموديل أو العميل..."
               value={searchQuery}
