@@ -5,6 +5,7 @@ import { Input } from '../UI/Input';
 import type { Vehicle } from '../../types';
 import type { Client } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
+import { vehicleTotalCost } from '../../utils/vehicleFinance';
 
 interface SellModalProps {
   isOpen: boolean;
@@ -34,7 +35,8 @@ export const SellModal: React.FC<SellModalProps> = ({
   if (!vehicle) return null;
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
-  const profit = finalPrice - (vehicle.importPrice || 0);
+  const totalCost = vehicleTotalCost(vehicle);
+  const profit = finalPrice - totalCost;
 
   const handleConfirm = () => {
     if (!selectedClient) return;
@@ -47,12 +49,12 @@ export const SellModal: React.FC<SellModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="ربط السيارة بعميل وتسجيل البيع"
-      maxWidth="500px"
+      maxWidth="520px"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>إلغاء</Button>
           <Button variant="primary" onClick={handleConfirm} disabled={!selectedClientId}>
-            تأكيد البيع
+            تأكيد البيع · ربح {formatCurrency(profit)}
           </Button>
         </>
       }
@@ -60,8 +62,13 @@ export const SellModal: React.FC<SellModalProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div className="glass-card" style={{ padding: '12px' }}>
           <strong>{vehicle.brand} {vehicle.model} {vehicle.year}</strong>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            سعر الاستيراد: {formatCurrency(vehicle.importPrice || 0)}
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.7 }}>
+            <div>سعر الاستيراد: {formatCurrency(vehicle.importPrice || 0)}</div>
+            {(vehicle.shippingCost || 0) > 0 && <div>شحن: {formatCurrency(vehicle.shippingCost)}</div>}
+            {(vehicle.customsCost || 0) > 0 && <div>جمركة: {formatCurrency(vehicle.customsCost)}</div>}
+            {(vehicle.repairCost || 0) > 0 && <div>إصلاح/تجهيز: {formatCurrency(vehicle.repairCost)}</div>}
+            {(vehicle.otherCosts || 0) > 0 && <div>أخرى: {formatCurrency(vehicle.otherCosts)}</div>}
+            <div style={{ fontWeight: 700, marginTop: 4 }}>إجمالي التكلفة: {formatCurrency(totalCost)}</div>
           </div>
         </div>
 
@@ -94,9 +101,14 @@ export const SellModal: React.FC<SellModalProps> = ({
           background: profit >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
           border: `1px solid ${profit >= 0 ? '#22c55e' : '#ef4444'}`,
         }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>الربح المتوقع</div>
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            ربح الصفقة = سعر البيع − (استيراد + شحن + جمركة + إصلاح + أخرى)
+          </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: profit >= 0 ? '#22c55e' : '#ef4444' }}>
             {formatCurrency(profit)}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+            بعد البيع تُخفى السيارة من المتجر وصفحة الهبوط تلقائياً
           </div>
         </div>
       </div>

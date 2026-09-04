@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Vehicle, VehicleFormData, InventoryStatus, MonthlyProfit } from '../types';
 import { storage, STORAGE_KEYS } from '../services/storage';
+import {
+  vehicleTotalCost,
+  vehicleProfit,
+  normalizeVehicleCosts,
+} from '../utils/vehicleFinance';
 
 function generateId() {
   return crypto.randomUUID();
@@ -12,8 +17,9 @@ const ARABIC_MONTHS = [
 ];
 
 function normalizeVehicle(v: Vehicle): Vehicle {
+  const withCosts = normalizeVehicleCosts(v);
   return {
-    ...v,
+    ...withCosts,
     images: Array.isArray(v.images) ? v.images : [],
     videoUrl: v.videoUrl || '',
   };
@@ -43,6 +49,10 @@ export function useInventory() {
     const vehicle: Vehicle = {
       id: generateId(),
       ...data,
+      shippingCost: data.shippingCost || 0,
+      customsCost: data.customsCost || 0,
+      repairCost: data.repairCost || 0,
+      otherCosts: data.otherCosts || 0,
       images: data.images || [],
       videoUrl: data.videoUrl || '',
       createdAt: now,
@@ -53,9 +63,10 @@ export function useInventory() {
   }, [vehicles, save]);
 
   const updateVehicle = useCallback((id: string, data: Partial<VehicleFormData & { soldToClientId?: string; soldToClientName?: string; soldAt?: string }>) => {
-    const updated = vehicles.map((v) =>
-      v.id === id ? { ...v, ...data, updatedAt: new Date().toISOString() } : v
-    );
+    const updated = vehicles.map((v) => {
+      if (v.id !== id) return v;
+      return normalizeVehicle({ ...v, ...data, updatedAt: new Date().toISOString() } as Vehicle);
+    });
     save(updated);
   }, [vehicles, save]);
 
@@ -131,7 +142,7 @@ export function useInventory() {
       const entry = map.get(key)!;
       entry.salesCount += 1;
       entry.totalRevenue += v.sellingPrice || 0;
-      entry.totalCost += v.importPrice || 0;
+      entry.totalCost += vehicleTotalCost(v);
       entry.profit = entry.totalRevenue - entry.totalCost;
     });
 
@@ -150,7 +161,7 @@ export function useInventory() {
       .reduce((sum, v) => sum + (v.sellingPrice || 0), 0),
     totalProfit: vehicles
       .filter((v) => v.status === 'sold')
-      .reduce((sum, v) => sum + ((v.sellingPrice || 0) - (v.importPrice || 0)), 0),
+      .reduce((sum, v) => sum + vehicleProfit(v), 0),
   };
 
   return {
