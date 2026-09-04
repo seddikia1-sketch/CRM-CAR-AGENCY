@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, UserCheck } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, UserCheck, Printer } from 'lucide-react';
 import type { Vehicle } from '../../types';
 import { INVENTORY_STATUSES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { vehicleProfit, vehicleTotalCost } from '../../utils/vehicleFinance';
+import { printVehicleSaleInvoice } from '../../utils/printInvoice';
 import { Badge } from '../UI/Badge';
 import '../Clients/ClientTable.css';
 
@@ -43,6 +44,17 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
   const getStatusInfo = (status: string) => {
     return INVENTORY_STATUSES.find((s) => s.key === status) || { label: status, emoji: '', color: '#999' };
+  };
+
+  const reprintInvoice = (v: Vehicle) => {
+    if (!v.soldToClientName) return;
+    printVehicleSaleInvoice({
+      vehicle: v,
+      clientName: v.soldToClientName,
+      finalPrice: v.sellingPrice || 0,
+      soldAt: v.soldAt,
+    });
+    setActiveMenu(null);
   };
 
   return (
@@ -107,6 +119,11 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                         {v.status !== 'sold' && (
                           <button className="menu-item" onClick={() => { onSell(v); setActiveMenu(null); }}>
                             <UserCheck size={16} /> ربط بعميل وبيع
+                          </button>
+                        )}
+                        {v.status === 'sold' && v.soldToClientName && (
+                          <button className="menu-item" onClick={() => reprintInvoice(v)}>
+                            <Printer size={16} /> طباعة الفاتورة
                           </button>
                         )}
                         <button className="menu-item" onClick={() => { onEdit(v); setActiveMenu(null); }}>
