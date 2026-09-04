@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter as FilterIcon } from 'lucide-react';
+import { Plus, Search, Filter as FilterIcon, Download } from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { InventoryTable } from '../components/Inventory/InventoryTable';
@@ -11,6 +11,8 @@ import { InventoryStatus } from '../types';
 import type { Vehicle, VehicleFormData } from '../types';
 import { INVENTORY_STATUSES } from '../utils/constants';
 import { formatCurrency } from '../utils/formatters';
+import { vehicleTotalCost, vehicleProfit } from '../utils/vehicleFinance';
+import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 
 export const Inventory: React.FC = () => {
   const {
@@ -66,6 +68,36 @@ export const Inventory: React.FC = () => {
     return searchVehicles(searchQuery, statusFilter || undefined);
   }, [searchVehicles, searchQuery, statusFilter, vehicles]);
 
+  const exportCsv = () => {
+    const list = filtered.length ? filtered : vehicles;
+    downloadCsv(
+      `مخزون_سيارات_${csvTimestamp()}.csv`,
+      [
+        'الماركة', 'الموديل', 'السنة', 'اللون', 'VIN', 'الحالة', 'سعر الاستيراد',
+        'شحن', 'جمرك', 'إصلاح', 'أخرى', 'التكلفة الإجمالية', 'سعر البيع', 'الربح',
+        'العميل', 'تاريخ البيع',
+      ],
+      list.map((v) => [
+        v.brand,
+        v.model,
+        v.year,
+        v.color || '',
+        v.vin || '',
+        INVENTORY_STATUSES.find((s) => s.key === v.status)?.label || v.status,
+        v.importPrice || 0,
+        v.shippingCost || 0,
+        v.customsCost || 0,
+        v.repairCost || 0,
+        v.otherCosts || 0,
+        vehicleTotalCost(v),
+        v.sellingPrice || 0,
+        v.status === 'sold' ? vehicleProfit(v) : '',
+        v.soldToClientName || '',
+        v.soldAt ? new Date(v.soldAt).toLocaleDateString('ar-DZ') : '',
+      ])
+    );
+  };
+
   return (
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex', height: '100%' }}>
       <div className="page-header flex justify-between items-center" style={{ marginBottom: 0, flexWrap: 'wrap', gap: 12 }}>
@@ -75,9 +107,14 @@ export const Inventory: React.FC = () => {
             السيارات + المصاريف (شحن/جمرك/إصلاح) + ربح الصفقة. المباعة تُخفى من المتجر تلقائياً.
           </p>
         </div>
-        <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
-          إضافة سيارة
-        </Button>
+        <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Button variant="ghost" leftIcon={<Download size={18} />} onClick={exportCsv}>
+            تصدير CSV
+          </Button>
+          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => handleOpenModal()}>
+            إضافة سيارة
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
