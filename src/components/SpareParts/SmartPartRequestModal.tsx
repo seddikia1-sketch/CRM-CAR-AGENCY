@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, ImagePlus, PackagePlus, MessageCircle, Car } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ImagePlus, PackagePlus, MessageCircle, Car, Sparkles, Loader2 } from 'lucide-react';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
 import { Input } from '../UI/Input';
-import type { Vehicle, SparePart } from '../../types';
-import type { SupplierProfile } from '../../types';
+import type { Vehicle, SparePart, SupplierProfile } from '../../types';
 import {
   lookupParts,
   findVehicleByVin,
   buildSupplierWhatsAppMessage,
   type PartSuggestion,
 } from '../../utils/partLookup';
-import { formatCurrency } from '../../utils/formatters';
-import { getWhatsAppLink } from '../../utils/formatters';
+import { formatCurrency, getWhatsAppLink } from '../../utils/formatters';
+import { identifyPartsWithAi } from '../../services/partAi';
+import { getAiSettings, isAiConfigured } from '../../services/aiSettings';
 
 const LOW_STOCK_PO_KEY = 'crm_po_from_low_stock';
 
@@ -23,6 +23,17 @@ interface SmartPartRequestModalProps {
   vehicles: Vehicle[];
   parts: SparePart[];
   supplier?: SupplierProfile | null;
+}
+
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
+    available: 'متاحة',
+    reserved: 'محجوزة',
+    sold: 'مباعة',
+    in_transit: 'شحن',
+    customs: 'جمرك',
+  };
+  return map[status] || status;
 }
 
 export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
@@ -43,6 +54,10 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   const [manualBrand, setManualBrand] = useState('');
   const [manualModel, setManualModel] = useState('');
   const [manualYear, setManualYear] = useState<number | undefined>();
+  const [aiSuggestions, setAiSuggestions] = useState<PartSuggestion[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiReady, setAiReady] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,6 +71,9 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     setManualBrand('');
     setManualModel('');
     setManualYear(undefined);
+    setAiSuggestions([]);
+    setAiError('');
+    setAiReady(isAiConfigured(getAiSettings()));
   }, [isOpen]);
 
   const vehicleFromSelect = vehicles.find((v) => v.id === vehicleId);
@@ -63,9 +81,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   const activeVehicle = vehicleFromSelect || vehicleFromVin;
 
   useEffect(() => {
-    if (vehicleFromVin && !vehicleId) {
-      setVehicleId(vehicleFromVin.id);
-    }
+    if (vehicleFromVin && !vehicleId) setVehicleId(vehicleFromVin.id);
   }, [vehicleFromVin, vehicleId]);
 
   useEffect(() => {
@@ -81,7 +97,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   const model = activeVehicle?.model || manualModel;
   const year = activeVehicle?.year || manualYear;
 
-  const suggestions = useMemo(() => {
+  const catalogSuggestions = useMemo(() => {
     if (!partQuery.trim() && !brand && !model) return [];
     return lookupParts({
       query: partQuery,
@@ -93,17 +109,24 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     });
   }, [partQuery, brand, model, year, vin, activeVehicle?.vin, parts]);
 
+  const suggestions = useMemo(() => {
+    const merged = [...aiSuggestions, ...catalogSuggestions];
+    const seen = new Set<string>();
+    return merged.filter((s) => {
+      const k = `${s.name}|${s.reference}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [aiSuggestions, catalogSuggestions]);
+
   const selectedItems = suggestions.filter((s) => selected[s.id]);
 
-  const toggle = (id: string) => {
-    setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+  const toggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const selectTop = () => {
     const next: Record<string, boolean> = {};
-    suggestions.slice(0, 3).forEach((s) => {
-      next[s.id] = true;
-    });
+    suggestions.slice(0, 3).forEach((s) => { next[s.id] = true; });
     setSelected(next);
   };
 
@@ -118,7 +141,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
       return;
     }
     if (file.size > 2.5 * 1024 * 1024) {
-      alert('الصورة كبيرة — اختر صورة أقل من 2.5 ميجا');
+      alert('الصورة كبيرة — أقل من 2.5 ميجا');
       return;
     }
     const reader = new FileReader();
@@ -132,6 +155,43 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   const vehicleLabel = activeVehicle
     ? `${activeVehicle.brand} ${activeVehicle.model} ${activeVehicle.year || ''}`
     : [brand, model, year].filter(Boolean).join(' ');
+
+  const vehicleContext = activeVehicle
+    ? `مسجّلة في النظام — الحالة: ${statusLabel(activeVehicle.status)}${activeVehicle.status === 'sold' ? ' (سيارة بيعت سابقاً)' : ''}`
+    : 'سيارة غير مسجّلة / عميل خارجي — توريد قطع من الصين';
+
+  const runAi = async () => {
+    if (!partQuery.trim() && !photoPreview) {
+      alert('أدخل وصف القطعة أو أرفق صورة');
+      return;
+    }
+    if (!aiReady) {
+      alert('فعّل خدمة AI من الإعدادات وأدخل مفتاح API');
+      return;
+    }
+    setAiLoading(true);
+    setAiError('');
+    const result = await identifyPartsWithAi({
+      vin: vin || activeVehicle?.vin,
+      brand,
+      model,
+      year,
+      color: activeVehicle?.color,
+      partQuery: partQuery || 'تعرّف على القطعة من الصورة',
+      imageDataUrl: photoPreview,
+      vehicleContext,
+    });
+    setAiLoading(false);
+    if (result.error) setAiError(result.error);
+    if (result.suggestions.length) {
+      setAiSuggestions(result.suggestions);
+      const next: Record<string, boolean> = {};
+      result.suggestions.slice(0, 3).forEach((s) => { next[s.id] = true; });
+      setSelected((prev) => ({ ...prev, ...next }));
+    } else if (!result.error) {
+      setAiError('لم تُرجع الخدمة اقتراحات');
+    }
+  };
 
   const createPurchaseOrder = () => {
     const items = (selectedItems.length ? selectedItems : suggestions.slice(0, 1)).map((s) => ({
@@ -148,13 +208,14 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
         s.notes,
         vin || activeVehicle?.vin ? `VIN: ${vin || activeVehicle?.vin}` : '',
         photoName ? `مرجع صورة: ${photoName}` : '',
+        s.source === 'ai' ? 'مصدر: AI' : '',
       ]
         .filter(Boolean)
         .join(' · '),
     }));
 
     if (items.length === 0) {
-      alert('أدخل اسم القطعة أو اختر اقتراحاً');
+      alert('أدخل اسم القطعة أو شغّل AI أو اختر اقتراحاً');
       return;
     }
 
@@ -162,9 +223,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     if (photoPreview) {
       try {
         sessionStorage.setItem('crm_po_part_photo', photoPreview.slice(0, 200000));
-      } catch {
-        /* ignore quota */
-      }
+      } catch { /* ignore */ }
     }
     onClose();
     navigate('/purchases?fromLowStock=1');
@@ -190,20 +249,24 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     });
     const phone = supplier?.whatsapp || supplier?.phone || '';
     if (!phone) {
-      alert('أضف رقم واتساب المورد من صفحة المشتريات ← المورد');
+      alert('أضف رقم واتساب المورد من المشتريات ← المورد');
       return;
     }
     window.open(getWhatsAppLink(phone, msg), '_blank');
   };
 
-  const vehiclesWithVin = vehicles.filter((v) => v.vin && v.vin.trim());
+  // كل السيارات بما فيها المباعة — لطلب قطع لعميل اشترى سابقاً
+  const allVehicles = useMemo(
+    () => [...vehicles].sort((a, b) => (a.status === 'sold' ? 1 : 0) - (b.status === 'sold' ? 1 : 0)),
+    [vehicles]
+  );
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="طلب قطعة ذكي — VIN + اسم القطعة"
-      maxWidth="720px"
+      title="طلب قطعة ذكي — AI + VIN + كتالوج"
+      maxWidth="740px"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>إغلاق</Button>
@@ -218,9 +281,13 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
-          أدخل <strong>VIN</strong> أو اختر السيارة، ثم اسم القطعة (مثال: فلتر زيت).
-          النظام يطابق الكتالوج وجدول الأسعار والمخزون ويجهّز طلباً للمورد.
-          الصورة اختيارية كمرجع بصري (التعرف الآلي يعتمد على النص والسيارة).
+          يعمل مع <strong>أي سيارة</strong>: في المخزون، مباعة سابقاً، أو ماركة خارجية.
+          أدخل VIN أو الماركة/الموديل + وصف القطعة، ثم اضغط <strong>تعرّف بالـ AI</strong>.
+          {!aiReady && (
+            <>
+              {' '}— <Link to="/settings">فعّل مفتاح AI من الإعدادات</Link>
+            </>
+          )}
         </p>
 
         <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
@@ -229,20 +296,20 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
               label="رقم الهيكل VIN"
               value={vin}
               onChange={(e) => setVin(e.target.value.toUpperCase())}
-              placeholder="LSG... أو رقم الهيكل"
+              placeholder="LSG... أو أي VIN"
             />
           </div>
-          <div className="input-wrapper" style={{ flex: '1 1 220px' }}>
-            <label className="input-label">من مخزون السيارات</label>
+          <div className="input-wrapper" style={{ flex: '1 1 240px' }}>
+            <label className="input-label">سيارة من النظام (متاحة / مباعة / شحن)</label>
             <select
               className="input-field"
               value={vehicleId}
               onChange={(e) => setVehicleId(e.target.value)}
             >
-              <option value="">— اختر سيارة —</option>
-              {vehiclesWithVin.map((v) => (
+              <option value="">— يدوي أو VIN فقط —</option>
+              {allVehicles.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.brand} {v.model} {v.year} — {v.vin}
+                  {v.brand} {v.model} {v.year} [{statusLabel(v.status)}] {v.vin ? `— ${v.vin}` : ''}
                 </option>
               ))}
             </select>
@@ -255,13 +322,14 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
             <div style={{ fontSize: '0.9rem' }}>
               <strong>{activeVehicle.brand} {activeVehicle.model} {activeVehicle.year}</strong>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                VIN: {activeVehicle.vin || '—'} · اللون: {activeVehicle.color || '—'}
+                VIN: {activeVehicle.vin || '—'} · {statusLabel(activeVehicle.status)}
+                {activeVehicle.soldToClientName ? ` · العميل: ${activeVehicle.soldToClientName}` : ''}
               </div>
             </div>
           </div>
         ) : (
           <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
-            <Input label="الماركة (إن لم تُسجَّل السيارة)" value={manualBrand} onChange={(e) => setManualBrand(e.target.value)} placeholder="Jetour / Chery / Toyota" />
+            <Input label="الماركة" value={manualBrand} onChange={(e) => setManualBrand(e.target.value)} placeholder="Jetour / Toyota / أي ماركة" />
             <Input label="الموديل" value={manualModel} onChange={(e) => setManualModel(e.target.value)} placeholder="X70 Plus" />
             <Input label="السنة" type="number" value={manualYear || ''} onChange={(e) => setManualYear(Number(e.target.value) || undefined)} />
           </div>
@@ -273,11 +341,11 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
               label="اسم القطعة أو وصفها"
               value={partQuery}
               onChange={(e) => setPartQuery(e.target.value)}
-              placeholder="فلتر زيت · فلتر هواء · زيت 5W-30 · فرامل..."
+              placeholder="فلتر زيت · طقم فرامل أمامي · حساس ABS..."
               leftIcon={<Search size={16} />}
             />
           </div>
-          <div style={{ width: 110 }}>
+          <div style={{ width: 100 }}>
             <Input
               label="الكمية"
               type="number"
@@ -289,7 +357,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
 
         <div>
           <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <ImagePlus size={16} /> صورة القطعة (اختياري — مرجع)
+            <ImagePlus size={16} /> صورة القطعة (للـ AI إن كان النموذج يدعم الرؤية)
           </label>
           <input
             type="file"
@@ -300,20 +368,38 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
           />
           {photoPreview && (
             <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <img
-                src={photoPreview}
-                alt="مرجع القطعة"
-                style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }}
-              />
+              <img src={photoPreview} alt="مرجع" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }} />
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{photoName}</span>
               <Button variant="ghost" onClick={() => onPhoto(null)}>إزالة</Button>
             </div>
           )}
         </div>
 
+        <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+          <Button
+            variant="primary"
+            leftIcon={aiLoading ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+            onClick={runAi}
+            disabled={aiLoading}
+          >
+            {aiLoading ? 'جاري التعرف…' : 'تعرّف بالـ AI'}
+          </Button>
+          {!aiReady && (
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>
+              الكتالوج يعمل دائماً · AI يحتاج مفتاحاً من الإعدادات
+            </span>
+          )}
+        </div>
+
+        {aiError && (
+          <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', fontSize: '0.85rem' }}>
+            {aiError}
+          </div>
+        )}
+
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12 }}>
           <div className="flex justify-between items-center" style={{ marginBottom: 10 }}>
-            <strong style={{ fontSize: '0.95rem' }}>اقتراحات النظام ({suggestions.length})</strong>
+            <strong style={{ fontSize: '0.95rem' }}>الاقتراحات ({suggestions.length})</strong>
             {suggestions.length > 0 && (
               <Button variant="ghost" onClick={selectTop}>تحديد أفضل 3</Button>
             )}
@@ -321,11 +407,11 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
 
           {suggestions.length === 0 ? (
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              اكتب اسم القطعة و/أو اختر السيارة لعرض المطابقات من الكتالوج.
+              اكتب الوصف أو شغّل AI لعرض النتائج.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
-              {suggestions.map((s: PartSuggestion) => (
+              {suggestions.map((s) => (
                 <label
                   key={s.id}
                   style={{
@@ -339,21 +425,18 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
                     cursor: 'pointer',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={!!selected[s.id]}
-                    onChange={() => toggle(s.id)}
-                    style={{ marginTop: 4 }}
-                  />
+                  <input type="checkbox" checked={!!selected[s.id]} onChange={() => toggle(s.id)} style={{ marginTop: 4 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: '0.9rem' }}>{s.name}</strong>
+                      <strong style={{ fontSize: '0.9rem' }}>
+                        {s.source === 'ai' ? '✨ ' : ''}{s.name}
+                      </strong>
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: 700,
                         color: s.confidence >= 70 ? '#2dd4bf' : s.confidence >= 45 ? '#fbbf24' : 'var(--text-secondary)',
                       }}>
-                        تطابق {s.confidence}%
+                        {s.confidence}%
                       </span>
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -362,12 +445,12 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
                       {s.matchReason}
-                      {s.unitCost > 0 ? ` · تكلفة تقريبية ${formatCurrency(s.unitCost)}` : ''}
+                      {s.unitCost > 0 ? ` · ${formatCurrency(s.unitCost)}` : ''}
                       {s.source === 'inventory' ? ' · في المخزون' : ''}
                     </div>
                     {s.notes && (
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                        {s.notes.slice(0, 160)}{s.notes.length > 160 ? '…' : ''}
+                        {s.notes.slice(0, 180)}{s.notes.length > 180 ? '…' : ''}
                       </div>
                     )}
                   </div>
