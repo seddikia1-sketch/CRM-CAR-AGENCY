@@ -29,6 +29,10 @@ const defaultData: VehicleFormData = {
   arrivalDate: '',
   customsStatus: '',
   importPrice: 0,
+  shippingCost: 0,
+  customsCost: 0,
+  repairCost: 0,
+  otherCosts: 0,
   sellingPrice: 0,
   status: InventoryStatus.AVAILABLE,
   notes: '',
@@ -52,6 +56,10 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
       setFormData({
         ...defaultData,
         ...initialData,
+        shippingCost: initialData?.shippingCost || 0,
+        customsCost: initialData?.customsCost || 0,
+        repairCost: initialData?.repairCost || 0,
+        otherCosts: initialData?.otherCosts || 0,
         images: initialData?.images || [],
         videoUrl: initialData?.videoUrl || '',
       });
@@ -62,7 +70,7 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (['year', 'mileage', 'importPrice', 'sellingPrice'].includes(name)) {
+    if (['year', 'mileage', 'importPrice', 'sellingPrice', 'shippingCost', 'customsCost', 'repairCost', 'otherCosts'].includes(name)) {
       setFormData((prev) => ({ ...prev, [name]: Number(value) || 0 }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -106,6 +114,14 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
     });
     onClose();
   };
+
+  const totalCost =
+    (formData.importPrice || 0) +
+    (formData.shippingCost || 0) +
+    (formData.customsCost || 0) +
+    (formData.repairCost || 0) +
+    (formData.otherCosts || 0);
+  const estProfit = (formData.sellingPrice || 0) - totalCost;
 
   return (
     <Modal
@@ -156,69 +172,31 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
           <Input label="رقم الهيكل (VIN)" name="vin" value={formData.vin} onChange={handleChange} placeholder="LSGXXXXXXXXXXXX" dir="ltr" style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties} />
         </div>
 
-        {/* الوسائط */}
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>الصور والفيديو (للمتجر)</p>
-
+          <p style={{ fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>الصور والفيديو</p>
           <div className="flex gap-md" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 200px' }}>
-              <Input
-                label="رابط صورة"
-                value={imageUrlInput}
-                onChange={(e) => setImageUrlInput(e.target.value)}
-                placeholder="https://..."
-                dir="ltr"
-                style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
-              />
-            </div>
-            <Button type="button" variant="secondary" onClick={addImageUrl}>إضافة الرابط</Button>
-            <label style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-              padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-color)',
-              fontWeight: 600, fontSize: '0.875rem',
-            }}>
-              <ImagePlus size={16} /> رفع من الجهاز
-              <input type="file" accept="image/*" multiple hidden onChange={handleFileUpload} />
+            <Input label="رابط صورة" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)} placeholder="https://..." dir="ltr" style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties} />
+            <Button type="button" variant="ghost" onClick={addImageUrl}>إضافة رابط</Button>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+              <ImagePlus size={16} /> رفع صور
+              <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
             </label>
           </div>
-
-          {uploadError && (
-            <p style={{ color: 'var(--accent-danger)', fontSize: '0.85rem', marginTop: 8 }}>{uploadError}</p>
-          )}
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 6 }}>
-            يُفضّل صور بحجم أقل من 2.5 ميجا. يمكن إضافة عدة صور.
-          </p>
-
-          {(formData.images?.length || 0) > 0 && (
+          {uploadError && <p style={{ color: '#ef4444', fontSize: '0.85rem' }}>{uploadError}</p>}
+          {formData.images?.length > 0 && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {formData.images.map((src, i) => (
-                <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
-                  <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-color)' }} />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    style={{
-                      position: 'absolute', top: -6, left: -6, background: '#ef4444', color: '#fff',
-                      borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
+              {formData.images.map((src, index) => (
+                <div key={index} style={{ position: 'relative', width: 72, height: 72 }}>
+                  <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                  <button type="button" onClick={() => removeImage(index)} style={{ position: 'absolute', top: -6, left: -6, border: 'none', borderRadius: 999, background: '#ef4444', color: '#fff', width: 22, height: 22, cursor: 'pointer' }}>
                     <Trash2 size={12} />
                   </button>
                 </div>
               ))}
             </div>
           )}
-
           <div style={{ marginTop: 12 }}>
-            <Input
-              label="رابط فيديو (يوتيوب أو ملف mp4)"
-              name="videoUrl"
-              value={formData.videoUrl}
-              onChange={handleChange}
-              placeholder="https://youtube.com/watch?v=... أو رابط mp4"
-              dir="ltr"
-              style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
-            />
+            <Input label="رابط فيديو (يوتيوب أو ملف mp4)" name="videoUrl" value={formData.videoUrl} onChange={handleChange} placeholder="https://youtube.com/..." dir="ltr" style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties} />
           </div>
         </div>
 
@@ -243,10 +221,30 @@ export const InventoryModal: React.FC<InventoryModalProps> = ({
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
-          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>الأسعار</p>
+          <p style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--text-secondary)' }}>التكلفة والبيع</p>
           <div className="flex gap-md">
             <Input label="سعر الاستيراد (دج)" name="importPrice" type="number" value={formData.importPrice || ''} onChange={handleChange} />
             <Input label="سعر البيع (دج)" name="sellingPrice" type="number" value={formData.sellingPrice || ''} onChange={handleChange} />
+          </div>
+          <p style={{ fontWeight: 600, margin: '12px 0 8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>مصاريف إضافية (تدخل في حساب الربح)</p>
+          <div className="flex gap-md" style={{ flexWrap: 'wrap' }}>
+            <Input label="شحن (دج)" name="shippingCost" type="number" value={formData.shippingCost || ''} onChange={handleChange} />
+            <Input label="جمركة (دج)" name="customsCost" type="number" value={formData.customsCost || ''} onChange={handleChange} />
+            <Input label="إصلاح/تجهيز (دج)" name="repairCost" type="number" value={formData.repairCost || ''} onChange={handleChange} />
+            <Input label="مصاريف أخرى (دج)" name="otherCosts" type="number" value={formData.otherCosts || ''} onChange={handleChange} />
+          </div>
+          <div style={{
+            marginTop: 12, padding: '10px 12px', borderRadius: 10,
+            background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
+            fontSize: '0.9rem',
+          }}>
+            <div>إجمالي التكلفة: <strong>{totalCost.toLocaleString('ar-DZ')} دج</strong></div>
+            <div style={{ marginTop: 4 }}>
+              ربح تقديري:{' '}
+              <strong style={{ color: estProfit >= 0 ? '#22c55e' : '#ef4444' }}>
+                {estProfit.toLocaleString('ar-DZ')} دج
+              </strong>
+            </div>
           </div>
         </div>
 
