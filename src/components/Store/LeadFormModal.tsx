@@ -103,7 +103,7 @@ export const LeadFormModal: React.FC<Props> = ({
               </p>
             )}
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 14 }}>
-              اترك اسمك ورقم هاتفك وسنتصل بك لتأكيد الحجز.
+              حقلان فقط: الاسم والهاتف — وسنتصل بك لتأكيد الحجز.
             </p>
 
             <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -162,15 +162,18 @@ export const LeadFormModal: React.FC<Props> = ({
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ملاحظة (اختياري)</label>
+              <details style={{ marginTop: 4 }}>
+                <summary style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  ملاحظة إضافية (اختياري)
+                </summary>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  rows={3}
+                  rows={2}
+                  placeholder="لون مفضل، موعد معاينة..."
                   style={{
                     width: '100%',
-                    marginTop: 4,
+                    marginTop: 6,
                     padding: '10px 12px',
                     borderRadius: 10,
                     border: '1px solid var(--border-color)',
@@ -179,7 +182,7 @@ export const LeadFormModal: React.FC<Props> = ({
                     resize: 'vertical',
                   }}
                 />
-              </div>
+              </details>
 
               <button
                 type="submit"
