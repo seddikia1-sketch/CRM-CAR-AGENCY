@@ -113,6 +113,8 @@ export interface Vehicle {
   soldToClientId?: string;
   soldToClientName?: string;
   soldAt?: string;
+  /** رقم فاتورة البيع المتسلسل (INV-YYYY-####) */
+  invoiceNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,6 +200,8 @@ export interface PartSale {
   vehicleLabel?: string;
   notes: string;
   soldAt: string;
+  /** رقم فاتورة القطع (PART-YYYY-####) */
+  invoiceNumber?: string;
 }
 
 export const ServiceType = {
