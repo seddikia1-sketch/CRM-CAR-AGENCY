@@ -6,6 +6,7 @@ import type { Vehicle } from '../../types';
 import type { Client } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { vehicleTotalCost } from '../../utils/vehicleFinance';
+import { printVehicleSaleInvoice } from '../../utils/printInvoice';
 
 interface SellModalProps {
   isOpen: boolean;
@@ -24,11 +25,13 @@ export const SellModal: React.FC<SellModalProps> = ({
 }) => {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [finalPrice, setFinalPrice] = useState(0);
+  const [printAfter, setPrintAfter] = useState(true);
 
   React.useEffect(() => {
     if (vehicle) {
       setFinalPrice(vehicle.sellingPrice || 0);
       setSelectedClientId('');
+      setPrintAfter(true);
     }
   }, [vehicle]);
 
@@ -41,6 +44,15 @@ export const SellModal: React.FC<SellModalProps> = ({
   const handleConfirm = () => {
     if (!selectedClient) return;
     onConfirm(selectedClient.id, selectedClient.name, finalPrice);
+    if (printAfter) {
+      printVehicleSaleInvoice({
+        vehicle: { ...vehicle, sellingPrice: finalPrice },
+        clientName: selectedClient.name,
+        clientPhone: selectedClient.phone,
+        finalPrice,
+        soldAt: new Date().toISOString(),
+      });
+    }
     onClose();
   };
 
@@ -94,6 +106,15 @@ export const SellModal: React.FC<SellModalProps> = ({
           value={finalPrice || ''}
           onChange={(e) => setFinalPrice(Number(e.target.value) || 0)}
         />
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
+          <input
+            type="checkbox"
+            checked={printAfter}
+            onChange={(e) => setPrintAfter(e.target.checked)}
+          />
+          طباعة فاتورة البيع بعد التأكيد
+        </label>
 
         <div style={{
           padding: '12px',
