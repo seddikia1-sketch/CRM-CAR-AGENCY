@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -44,6 +45,8 @@ const emptyLine = (): LineForm => ({
   notes: '',
 });
 
+const LOW_STOCK_PO_KEY = 'crm_po_from_low_stock';
+
 export const Purchases: React.FC = () => {
   const {
     orders,
@@ -72,6 +75,53 @@ export const Purchases: React.FC = () => {
   const [status, setStatusLocal] = useState<PurchaseStatus>(Status.DRAFT);
   const [lines, setLines] = useState<LineForm[]>([emptyLine()]);
   const [supForm, setSupForm] = useState(supplier);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // تعبئة أمر شراء من القطع الناقصة (من صفحة قطع الغيار)
+  useEffect(() => {
+    if (searchParams.get('fromLowStock') !== '1') return;
+    try {
+      const raw = sessionStorage.getItem(LOW_STOCK_PO_KEY);
+      if (!raw) {
+        setSearchParams({}, { replace: true });
+        return;
+      }
+      const parsed = JSON.parse(raw) as LineForm[];
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        setSearchParams({}, { replace: true });
+        return;
+      }
+      const mapped: LineForm[] = parsed.map((l) => ({
+        kind: (l.kind as PurchaseItemKind) || Kind.SPARE_PART,
+        name: l.name || '',
+        reference: l.reference || '',
+        brand: l.brand || '',
+        model: l.model || '',
+        year: l.year,
+        color: l.color,
+        quantity: Number(l.quantity) || 1,
+        unitCost: Number(l.unitCost) || 0,
+        expectedSellPrice: l.expectedSellPrice,
+        notes: l.notes || '',
+      }));
+      setEditing(null);
+      setOrderDate(new Date().toISOString().slice(0, 10));
+      setExpectedArrival('');
+      setContainerNumber('');
+      setShippingNotes('');
+      setNotes(`أمر شراء مقترح من القطع الناقصة (${mapped.length} صنف)`);
+      setStatusLocal(Status.ORDERED);
+      setLines(mapped);
+      setModalOpen(true);
+      setToast(`تم تعبئة ${mapped.length} صنف من القطع الناقصة — راجع ثم احفظ`);
+      setTimeout(() => setToast(''), 3500);
+      sessionStorage.removeItem(LOW_STOCK_PO_KEY);
+      setSearchParams({}, { replace: true });
+    } catch {
+      sessionStorage.removeItem(LOW_STOCK_PO_KEY);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
     let list = orders;
@@ -400,5 +450,3 @@ export const Purchases: React.FC = () => {
     </div>
   );
 };
-
-export default Purchases;
