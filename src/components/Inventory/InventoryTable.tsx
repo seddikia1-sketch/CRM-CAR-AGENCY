@@ -49,13 +49,13 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   const reprintInvoice = (v: Vehicle) => {
     if (!v.soldToClientName) return;
     const year = v.soldAt ? new Date(v.soldAt).getFullYear() : new Date().getFullYear();
-    const stableNo = `INV-${year}-R${v.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+    const fallback = `INV-${year}-R${v.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
     printVehicleSaleInvoice({
       vehicle: v,
       clientName: v.soldToClientName,
       finalPrice: v.sellingPrice || 0,
       soldAt: v.soldAt,
-      invoiceNumber: stableNo,
+      invoiceNumber: v.invoiceNumber || fallback,
     });
     setActiveMenu(null);
   };
@@ -85,7 +85,10 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 <td>
                   <div className="client-name-cell">
                     <p className="client-name">{v.brand} {v.model}</p>
-                    <p className="client-phone">{v.year} • {v.color || '-'}</p>
+                    <p className="client-phone">
+                      {v.year} • {v.color || '-'}
+                      {v.invoiceNumber ? ` · ${v.invoiceNumber}` : ''}
+                    </p>
                   </div>
                 </td>
                 <td>
