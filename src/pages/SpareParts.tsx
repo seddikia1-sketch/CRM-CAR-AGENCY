@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter as FilterIcon, ShoppingCart, AlertTriangle, PackagePlus } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Filter as FilterIcon,
+  ShoppingCart,
+  AlertTriangle,
+  PackagePlus,
+  Printer,
+  Download,
+} from 'lucide-react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import { PartModal } from '../components/SpareParts/PartModal';
@@ -8,10 +17,12 @@ import { SellPartModal } from '../components/SpareParts/SellPartModal';
 import { useSpareParts } from '../hooks/useSpareParts';
 import { useClients } from '../hooks/useClients';
 import { useInventory } from '../hooks/useInventory';
-import type { SparePart, SparePartFormData, PartCategory } from '../types';
+import type { SparePart, SparePartFormData, PartCategory, PartSale } from '../types';
 import { PurchaseItemKind } from '../types';
 import { PART_CATEGORIES } from '../utils/constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { printPartSaleInvoice } from '../utils/printInvoice';
+import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 import '../components/Clients/ClientTable.css';
 
 const LOW_STOCK_PO_KEY = 'crm_po_from_low_stock';
@@ -61,6 +72,51 @@ export const SpareParts: React.FC = () => {
     if (sellPartData) {
       sellPart(sellPartData.id, qty, price, clientId, clientName, notes, vehicleId, vehicleVin, vehicleLabel, invoiceNumber);
     }
+  };
+
+  const reprintSale = (s: PartSale) => {
+    const part = parts.find((p) => p.id === s.partId);
+    const year = s.soldAt ? new Date(s.soldAt).getFullYear() : new Date().getFullYear();
+    const fallback = `PART-${year}-R${s.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+    printPartSaleInvoice({
+      part: {
+        name: s.partName,
+        partNumber: part?.partNumber || '',
+        brand: part?.brand || '',
+      },
+      quantity: s.quantity,
+      unitPrice: s.unitPrice,
+      clientName: s.clientName,
+      vehicleLabel: s.vehicleLabel,
+      vehicleVin: s.vehicleVin,
+      notes: s.notes,
+      soldAt: s.soldAt,
+      invoiceNumber: s.invoiceNumber || fallback,
+    });
+  };
+
+  const exportSalesCsv = () => {
+    downloadCsv(
+      `مبيعات_قطع_${csvTimestamp()}.csv`,
+      [
+        'رقم الفاتورة', 'القطعة', 'الكمية', 'سعر الوحدة', 'الإجمالي',
+        'التكلفة', 'الربح', 'العميل', 'السيارة', 'VIN', 'ملاحظات', 'التاريخ',
+      ],
+      sales.map((s) => [
+        s.invoiceNumber || '',
+        s.partName,
+        s.quantity,
+        s.unitPrice,
+        s.totalPrice,
+        s.costTotal,
+        s.profit,
+        s.clientName || '',
+        s.vehicleLabel || '',
+        s.vehicleVin || '',
+        s.notes || '',
+        s.soldAt ? new Date(s.soldAt).toLocaleDateString('ar-DZ') : '',
+      ])
+    );
   };
 
   const createPoFromLowStock = () => {
@@ -171,13 +227,18 @@ export const SpareParts: React.FC = () => {
         </div>
       )}
 
-      <div className="flex gap-sm">
+      <div className="flex gap-sm" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
         <Button variant={activeTab === 'stock' ? 'primary' : 'ghost'} onClick={() => setActiveTab('stock')}>
           المخزون
         </Button>
         <Button variant={activeTab === 'sales' ? 'primary' : 'ghost'} onClick={() => setActiveTab('sales')}>
           سجل المبيعات ({sales.length})
         </Button>
+        {activeTab === 'sales' && sales.length > 0 && (
+          <Button variant="ghost" leftIcon={<Download size={16} />} onClick={exportSalesCsv}>
+            تصدير CSV
+          </Button>
+        )}
       </div>
 
       {activeTab === 'stock' && (
@@ -291,6 +352,7 @@ export const SpareParts: React.FC = () => {
                     <th>العميل</th>
                     <th>السيارة (VIN)</th>
                     <th>التاريخ</th>
+                    <th>إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,6 +372,15 @@ export const SpareParts: React.FC = () => {
                         ) : '-'}
                       </td>
                       <td>{formatDate(s.soldAt)}</td>
+                      <td>
+                        <button
+                          className="icon-btn"
+                          title="طباعة الفاتورة"
+                          onClick={() => reprintSale(s)}
+                        >
+                          <Printer size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
