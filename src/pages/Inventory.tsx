@@ -57,9 +57,14 @@ export const Inventory: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleSellConfirm = (clientId: string, clientName: string, finalPrice: number) => {
+  const handleSellConfirm = (
+    clientId: string,
+    clientName: string,
+    finalPrice: number,
+    invoiceNumber?: string
+  ) => {
     if (sellVehicleData) {
-      sellVehicle(sellVehicleData.id, clientId, clientName, finalPrice);
+      sellVehicle(sellVehicleData.id, clientId, clientName, finalPrice, invoiceNumber);
       setSellVehicleData(null);
     }
   };
@@ -75,7 +80,7 @@ export const Inventory: React.FC = () => {
       [
         'الماركة', 'الموديل', 'السنة', 'اللون', 'VIN', 'الحالة', 'سعر الاستيراد',
         'شحن', 'جمرك', 'إصلاح', 'أخرى', 'التكلفة الإجمالية', 'سعر البيع', 'الربح',
-        'العميل', 'تاريخ البيع',
+        'العميل', 'تاريخ البيع', 'رقم الفاتورة',
       ],
       list.map((v) => [
         v.brand,
@@ -94,6 +99,7 @@ export const Inventory: React.FC = () => {
         v.status === 'sold' ? vehicleProfit(v) : '',
         v.soldToClientName || '',
         v.soldAt ? new Date(v.soldAt).toLocaleDateString('ar-DZ') : '',
+        v.invoiceNumber || '',
       ])
     );
   };
@@ -144,7 +150,7 @@ export const Inventory: React.FC = () => {
         <div className="flex gap-md justify-between items-center" style={{ padding: 'var(--spacing-md)', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
           <div style={{ width: 'min(280px, 100%)' }}>
             <Input
-              placeholder="بحث بالماركة أو الموديل أو العميل..."
+              placeholder="بحث بالماركة أو الموديل أو العميل أو رقم الفاتورة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               leftIcon={<Search size={16} />}
