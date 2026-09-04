@@ -1,6 +1,7 @@
 /**
  * التعرف على قطع الغيار من VIN + اسم القطعة + كتالوج الزيت/الفلاتر
  * ملاحظة: التعرف من الصورة يكون مرجعاً يدوياً — المطابقة الآلية تعتمد على النص والسيارة
+ * النتائج من AI تُدمج عبر services/partAi.ts
  */
 
 import { OIL_FILTER_CATALOG, type OilFilterSpec } from '../data/oilFilterCatalog';
@@ -28,7 +29,7 @@ export interface PartSuggestion {
   unitCost: number;
   expectedSellPrice?: number;
   notes: string;
-  source: 'catalog' | 'price_list' | 'inventory' | 'manual';
+  source: 'catalog' | 'price_list' | 'inventory' | 'manual' | 'ai';
   confidence: number; // 0-100
   matchReason: string;
 }
@@ -77,7 +78,6 @@ function scoreBrandModel(spec: OilFilterSpec, brand: string, model: string): num
   let score = 0;
   if (b && (sb.includes(b) || b.includes(sb))) score += 40;
   if (m && (sm.includes(m) || m.includes(sm.split('/')[0].trim()))) score += 45;
-  // كلمات جزئية للموديل
   if (m) {
     const tokens = m.split(/[\s/-]+/).filter((t) => t.length > 1);
     const hit = tokens.filter((t) => sm.includes(t)).length;
@@ -141,7 +141,6 @@ export function findCatalogForVehicle(brand: string, model: string, year?: numbe
     .sort((a, b) => b.score - a.score);
 
   if (year) {
-    // تفضيل سنوات متداخلة إن أمكن
     scored.sort((a, b) => {
       const ya = yearInRange(year, a.spec.years) ? 1 : 0;
       const yb = yearInRange(year, b.spec.years) ? 1 : 0;
@@ -246,13 +245,11 @@ export function lookupParts(options: {
   const hint = detectPartKind(query);
   const results: PartSuggestion[] = [];
 
-  // 1) كتالوج الزيت/الفلاتر حسب السيارة
   if (brand || model) {
     const specs = findCatalogForVehicle(brand, model, options.year);
     for (const spec of specs) {
       const field = fieldForHint(spec, hint);
       if (hint === 'other' || !field) {
-        // عرض حزمة صيانة أساسية
         const pack = [
           { h: 'oil_filter' as PartKindHint, f: fieldForHint(spec, 'oil_filter') },
           { h: 'air_filter' as PartKindHint, f: fieldForHint(spec, 'air_filter') },
@@ -295,15 +292,12 @@ export function lookupParts(options: {
     }
   }
 
-  // 2) جدول الأسعار
   results.push(...matchPriceList(query || labelForHint(hint), brand, model, hint));
 
-  // 3) المخزون الحالي
   if (options.inventoryParts?.length) {
     results.push(...matchInventory(options.inventoryParts, query || brand));
   }
 
-  // 4) إن لم نجد شيئاً — اقتراح يدوي من النص
   if (results.length === 0 && (query || brand)) {
     results.push({
       id: 'manual-1',
@@ -320,7 +314,6 @@ export function lookupParts(options: {
     });
   }
 
-  // إزالة تكرار بالاسم+المرجع
   const seen = new Set<string>();
   const unique = results.filter((r) => {
     const k = `${norm(r.name)}|${norm(r.reference)}`;
