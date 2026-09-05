@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { Button } from '../components/UI/Button';
 import { Input } from '../components/UI/Input';
 import {
-  Download, Upload, Trash2, Store, Copy, Check, ExternalLink, FileSpreadsheet, Sparkles,
+  Download, Upload, Trash2, Store, Copy, Check, ExternalLink, FileSpreadsheet, Sparkles, Cloud,
 } from 'lucide-react';
 import { storage, STORAGE_KEYS } from '../services/storage';
 import { getOfficeSettings, saveOfficeSettings, type OfficeSettings } from '../services/officeSettings';
 import { getAiSettings, saveAiSettings, type AiSettings, DEFAULT_AI_SETTINGS, isAiConfigured } from '../services/aiSettings';
+import {
+  getCloudSettings, saveCloudSettings, type CloudSettings, DEFAULT_CLOUD_SETTINGS, isCloudConfigured,
+} from '../services/cloudSettings';
+import { pushToCloud, pullFromCloud, testCloudConnection } from '../services/cloudSync';
 import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 import { vehicleTotalCost, vehicleProfit } from '../utils/vehicleFinance';
 import { FUNNEL_STAGES, INVENTORY_STATUSES, PART_CATEGORIES } from '../utils/constants';
@@ -82,6 +86,10 @@ export const Settings: React.FC = () => {
   const [aiError, setAiError] = useState('');
   const [copied, setCopied] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(() => localStorage.getItem(LAST_BACKUP_KEY));
+  const [cloud, setCloud] = useState<CloudSettings>(getCloudSettings());
+  const [cloudSaved, setCloudSaved] = useState(false);
+  const [cloudMsg, setCloudMsg] = useState('');
+  const [cloudBusy, setCloudBusy] = useState(false);
 
   const markBackup = () => {
     const now = new Date().toISOString();
@@ -274,6 +282,40 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const saveCloud = () => {
+    const toSave: CloudSettings = {
+      ...cloud,
+      url: cloud.url.trim(),
+      anonKey: cloud.anonKey.trim(),
+      enabled: !!(cloud.url.trim() && cloud.anonKey.trim() && cloud.enabled),
+    };
+    if (cloud.enabled && (!toSave.url || !toSave.anonKey)) {
+      setCloudMsg('أدخل رابط المشروع ومفتاح anon');
+      return;
+    }
+    saveCloudSettings(toSave);
+    setCloud(toSave);
+    setCloudSaved(true);
+    setCloudMsg(isCloudConfigured(toSave) ? 'تم حفظ إعدادات السحابة' : 'تم الحفظ — فعّل السحابة بعد إدخال البيانات');
+    setTimeout(() => setCloudSaved(false), 2500);
+  };
+
+  const runCloud = async (action: 'test' | 'push' | 'pull') => {
+    setCloudBusy(true);
+    setCloudMsg('');
+    saveCloudSettings({ ...cloud, url: cloud.url.trim(), anonKey: cloud.anonKey.trim() });
+    let result;
+    if (action === 'test') result = await testCloudConnection();
+    else if (action === 'push') result = await pushToCloud();
+    else result = await pullFromCloud();
+    setCloudBusy(false);
+    setCloud(getCloudSettings());
+    setCloudMsg(result.message);
+    if (action === 'pull' && result.ok) {
+      setTimeout(() => window.location.reload(), 800);
+    }
+  };
+
   const copyStoreLink = async () => {
     try {
       await navigator.clipboard.writeText(STORE_URL);
@@ -292,7 +334,7 @@ export const Settings: React.FC = () => {
     <div className="animate-fade-in flex-col gap-lg" style={{ display: 'flex' }}>
       <div className="page-header">
         <h1 className="page-title">الإعدادات</h1>
-        <p className="page-description">بيانات المكتب، خدمة AI للقطع، المتجر، والنسخ الاحتياطي.</p>
+        <p className="page-description">بيانات المكتب، السحابة، خدمة AI، المتجر، والنسخ الاحتياطي.</p>
       </div>
 
       <div className="glass-card" style={{ padding: 'var(--spacing-lg)', border: '1px solid rgba(124,108,240,0.25)' }}>
@@ -434,6 +476,76 @@ export const Settings: React.FC = () => {
         </div>
       </div>
 
+      <div className="glass-card" style={{ padding: 'var(--spacing-lg)', border: '1px solid rgba(56,189,248,0.35)' }}>
+        <h3 style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Cloud size={18} color="#38bdf8" /> مزامنة السحابة (Supabase)
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 14, lineHeight: 1.6 }}>
+          ارفع البيانات من جهاز، ثم نزّلها على الهاتف أو الآيباد لنفس المحتوى على كل الأجهزة.
+          المفتاح يُحفظ في هذا المتصفح فقط.
+        </p>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={cloud.enabled}
+            onChange={(e) => setCloud({ ...cloud, enabled: e.target.checked })}
+          />
+          <span style={{ fontWeight: 700 }}>تفعيل المزامنة السحابية</span>
+        </label>
+
+        <div className="flex-col gap-md" style={{ display: 'flex', maxWidth: 560 }}>
+          <Input
+            label="رابط المشروع (Project URL)"
+            value={cloud.url}
+            onChange={(e) => setCloud({ ...cloud, url: e.target.value })}
+            placeholder="https://xxxx.supabase.co"
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
+          />
+          <Input
+            label="مفتاح anon public"
+            type="password"
+            value={cloud.anonKey}
+            onChange={(e) => setCloud({ ...cloud, anonKey: e.target.value })}
+            placeholder="eyJhbGciOi..."
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
+          />
+
+          {cloudMsg && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 10, fontSize: '0.85rem',
+              background: cloudMsg.includes('فشل') || cloudMsg.includes('أدخل') ? 'rgba(248,113,113,0.12)' : 'rgba(56,189,248,0.12)',
+              border: '1px solid rgba(56,189,248,0.3)',
+            }}>
+              {cloudMsg}
+            </div>
+          )}
+
+          <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+            <Button variant="primary" onClick={saveCloud} disabled={cloudBusy}>
+              {cloudSaved ? '✓ تم الحفظ' : 'حفظ إعدادات السحابة'}
+            </Button>
+            <Button variant="secondary" onClick={() => runCloud('test')} disabled={cloudBusy}>
+              اختبار الاتصال
+            </Button>
+            <Button variant="secondary" onClick={() => runCloud('push')} disabled={cloudBusy}>
+              رفع إلى السحابة
+            </Button>
+            <Button variant="secondary" onClick={() => runCloud('pull')} disabled={cloudBusy}>
+              تنزيل من السحابة
+            </Button>
+          </div>
+
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+            آخر رفع: {cloud.lastPushAt ? new Date(cloud.lastPushAt).toLocaleString('ar-DZ') : '—'}
+            {' · '}
+            آخر تنزيل: {cloud.lastPullAt ? new Date(cloud.lastPullAt).toLocaleString('ar-DZ') : '—'}
+          </p>
+        </div>
+      </div>
+
       <div className="glass-card" style={{ padding: 'var(--spacing-lg)' }}>
         <h3 style={{ marginBottom: '8px' }}>المتجر الإلكتروني</h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 12 }}>
@@ -502,7 +614,7 @@ export const Settings: React.FC = () => {
 
       <div className="glass-card" style={{ padding: 'var(--spacing-lg)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
         <Store size={16} style={{ verticalAlign: 'middle', marginLeft: 6 }} />
-        نصيحة: مفتاح AI لا يُصدَّر ضمن النسخة الاحتياطية JSON لأسباب أمنية — احفظه في مكان آمن.
+        نصيحة: مفتاح AI ومفتاح السحابة لا يُصدَّران ضمن النسخة الاحتياطية JSON — احفظهما في مكان آمن.
       </div>
     </div>
   );
