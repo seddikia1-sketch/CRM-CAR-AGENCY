@@ -15,24 +15,24 @@ import type { Client, Vehicle, SparePart } from '../types';
 const STORE_URL = `${window.location.origin}${window.location.pathname}#/store`;
 const LAST_BACKUP_KEY = 'crm_last_backup_at';
 
-/** إعدادات جاهزة لمزودي AI الشائعين — محدّثة سبتمبر 2026 */
+/** إعدادات جاهزة لمزودي AI — محدّثة سبتمبر 2026 */
 const AI_PRESETS = [
   {
-    id: 'groq',
-    name: 'Groq (موصى به)',
-    baseUrl: 'https://api.groq.com/openai/v1',
-    model: 'llama-3.1-8b-instant',
-    visionModel: 'llama-3.1-8b-instant',
-    note: 'سريع ومجاني تقريباً — يعمل حالياً بدون مشاكل',
-    keyUrl: 'https://console.groq.com/keys',
+    id: 'grok',
+    name: 'Grok (xAI)',
+    baseUrl: 'https://api.x.ai/v1',
+    model: 'grok-4',
+    visionModel: 'grok-4',
+    note: 'المستخدم حالياً — مجاني ضمن الرصيد المتاح',
+    keyUrl: 'https://console.x.ai',
   },
   {
-    id: 'groq-strong',
-    name: 'Groq قوي',
+    id: 'groq',
+    name: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
     model: 'openai/gpt-oss-20b',
     visionModel: 'openai/gpt-oss-20b',
-    note: 'أقوى من 8B وما زال رخيص',
+    note: 'سريع ورخيص',
     keyUrl: 'https://console.groq.com/keys',
   },
   {
@@ -304,7 +304,6 @@ export const Settings: React.FC = () => {
           المفتاح يُحفظ في <strong>هذا المتصفح فقط</strong>.
         </p>
 
-        {/* أزرار اختيار المزود */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
             اختر المزود بسرعة:
@@ -318,8 +317,8 @@ export const Settings: React.FC = () => {
                 style={{
                   padding: '8px 14px',
                   borderRadius: 10,
-                  border: ai.model === p.model ? '2px solid #7c6cf0' : '1px solid var(--border-color)',
-                  background: ai.model === p.model ? 'rgba(124,108,240,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: ai.baseUrl === p.baseUrl ? '2px solid #7c6cf0' : '1px solid var(--border-color)',
+                  background: ai.baseUrl === p.baseUrl ? 'rgba(124,108,240,0.15)' : 'rgba(255,255,255,0.04)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '0.82rem',
@@ -331,10 +330,10 @@ export const Settings: React.FC = () => {
             ))}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-            {AI_PRESETS.find((p) => p.model === ai.model)?.note || 'اختر مزوداً ثم أدخل مفتاحه'}
+            {AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.note || 'اختر مزوداً ثم أدخل مفتاحه'}
             {' · '}
             <a
-              href={AI_PRESETS.find((p) => p.model === ai.model)?.keyUrl || 'https://console.groq.com/keys'}
+              href={AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.keyUrl || 'https://console.x.ai'}
               target="_blank"
               rel="noreferrer"
               style={{ color: '#a89bff' }}
@@ -367,7 +366,7 @@ export const Settings: React.FC = () => {
             label="عنوان الواجهة (Base URL)"
             value={ai.baseUrl}
             onChange={(e) => setAi({ ...ai, baseUrl: e.target.value })}
-            placeholder="https://api.groq.com/openai/v1"
+            placeholder="https://api.x.ai/v1"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -375,7 +374,7 @@ export const Settings: React.FC = () => {
             label="نموذج النص"
             value={ai.model}
             onChange={(e) => setAi({ ...ai, model: e.target.value })}
-            placeholder="llama-3.1-8b-instant"
+            placeholder="grok-4"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -383,7 +382,7 @@ export const Settings: React.FC = () => {
             label="نموذج الرؤية (للصور)"
             value={ai.visionModel}
             onChange={(e) => setAi({ ...ai, visionModel: e.target.value })}
-            placeholder="llama-3.1-8b-instant"
+            placeholder="grok-4"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
