@@ -15,6 +15,46 @@ import type { Client, Vehicle, SparePart } from '../types';
 const STORE_URL = `${window.location.origin}${window.location.pathname}#/store`;
 const LAST_BACKUP_KEY = 'crm_last_backup_at';
 
+/** إعدادات جاهزة لمزودي AI الشائعين */
+const AI_PRESETS = [
+  {
+    id: 'groq',
+    name: 'Groq (مجاني تقريباً)',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    model: 'llama-3.3-70b-versatile',
+    visionModel: 'llama-3.2-11b-vision-preview',
+    note: 'الأسرع والأرخص — موصى به للبداية',
+    keyUrl: 'https://console.groq.com/keys',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    baseUrl: 'https://api.deepseek.com',
+    model: 'deepseek-chat',
+    visionModel: 'deepseek-chat',
+    note: 'قوي ورخيص جداً',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4o-mini',
+    visionModel: 'gpt-4o-mini',
+    note: 'الأكثر دقة (مدفوع)',
+    keyUrl: 'https://platform.openai.com/api-keys',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'google/gemini-2.0-flash-001',
+    visionModel: 'google/gemini-2.0-flash-001',
+    note: 'يدعم عشرات النماذج',
+    keyUrl: 'https://openrouter.ai/keys',
+  },
+] as const;
+
 function stageLabel(key: string) {
   return FUNNEL_STAGES.find((s) => s.key === key)?.label || key;
 }
@@ -179,6 +219,17 @@ export const Settings: React.FC = () => {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const applyPreset = (preset: typeof AI_PRESETS[number]) => {
+    setAi((prev) => ({
+      ...prev,
+      baseUrl: preset.baseUrl,
+      model: preset.model,
+      visionModel: preset.visionModel,
+    }));
+    setAiError('');
+    setAiSaved(false);
+  };
+
   const saveAi = () => {
     setAiError('');
     const key = ai.apiKey.trim();
@@ -187,7 +238,6 @@ export const Settings: React.FC = () => {
       return;
     }
 
-    // تفعيل تلقائي عند وجود مفتاح
     const toSave: AiSettings = {
       ...ai,
       apiKey: key,
@@ -201,7 +251,6 @@ export const Settings: React.FC = () => {
       saveAiSettings(toSave);
       setAi(toSave);
 
-      // تحقق فوري
       const check = getAiSettings();
       if (isAiConfigured(check)) {
         setAiSaved(true);
@@ -243,9 +292,48 @@ export const Settings: React.FC = () => {
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 14, lineHeight: 1.6 }}>
           تتيح التعرف على القطعة لأي سيارة (مخزون، مباعة، أو ماركة خارجية) وتجهيز طلب للمورد الصيني.
-          المفتاح يُحفظ في <strong>هذا المتصفح فقط</strong>. يدعم أي مزود متوافق مع OpenAI
-          (OpenAI، Groq، DeepSeek، OpenRouter…).
+          المفتاح يُحفظ في <strong>هذا المتصفح فقط</strong>.
         </p>
+
+        {/* أزرار اختيار المزود */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
+            اختر المزود بسرعة:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {AI_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  border: ai.baseUrl === p.baseUrl ? '2px solid #7c6cf0' : '1px solid var(--border-color)',
+                  background: ai.baseUrl === p.baseUrl ? 'rgba(124,108,240,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                }}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+            {AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.note || 'اختر مزوداً ثم أدخل مفتاحه'}
+            {' · '}
+            <a
+              href={AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.keyUrl || 'https://console.groq.com/keys'}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: '#a89bff' }}
+            >
+              احصل على المفتاح من هنا
+            </a>
+          </div>
+        </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
           <input
@@ -262,7 +350,7 @@ export const Settings: React.FC = () => {
             type="password"
             value={ai.apiKey}
             onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
-            placeholder="sk-..."
+            placeholder="الصق المفتاح هنا"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -270,7 +358,7 @@ export const Settings: React.FC = () => {
             label="عنوان الواجهة (Base URL)"
             value={ai.baseUrl}
             onChange={(e) => setAi({ ...ai, baseUrl: e.target.value })}
-            placeholder="https://api.openai.com/v1"
+            placeholder="https://api.groq.com/openai/v1"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -278,7 +366,7 @@ export const Settings: React.FC = () => {
             label="نموذج النص"
             value={ai.model}
             onChange={(e) => setAi({ ...ai, model: e.target.value })}
-            placeholder="gpt-4o-mini"
+            placeholder="llama-3.3-70b-versatile"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -286,17 +374,10 @@ export const Settings: React.FC = () => {
             label="نموذج الرؤية (للصور)"
             value={ai.visionModel}
             onChange={(e) => setAi({ ...ai, visionModel: e.target.value })}
-            placeholder="gpt-4o-mini"
+            placeholder="llama-3.2-11b-vision-preview"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
-
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            أمثلة سريعة:
-            <br />• OpenAI: base = https://api.openai.com/v1 — model = gpt-4o-mini
-            <br />• Groq: base = https://api.groq.com/openai/v1 — model = llama-3.3-70b-versatile
-            <br />• بدون مفتاح: يبقى الكتالوج المحلي يعمل في «طلب قطعة ذكي»
-          </div>
 
           {aiError && (
             <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', fontSize: '0.85rem', color: '#fca5a5' }}>
