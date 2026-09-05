@@ -15,15 +15,24 @@ import type { Client, Vehicle, SparePart } from '../types';
 const STORE_URL = `${window.location.origin}${window.location.pathname}#/store`;
 const LAST_BACKUP_KEY = 'crm_last_backup_at';
 
-/** إعدادات جاهزة لمزودي AI الشائعين */
+/** إعدادات جاهزة لمزودي AI الشائعين — محدّثة سبتمبر 2026 */
 const AI_PRESETS = [
   {
     id: 'groq',
-    name: 'Groq (مجاني تقريباً)',
+    name: 'Groq (موصى به)',
     baseUrl: 'https://api.groq.com/openai/v1',
-    model: 'llama-3.3-70b-versatile',
-    visionModel: 'llama-3.2-11b-vision-preview',
-    note: 'الأسرع والأرخص — موصى به للبداية',
+    model: 'llama-3.1-8b-instant',
+    visionModel: 'llama-3.1-8b-instant',
+    note: 'سريع ومجاني تقريباً — يعمل حالياً بدون مشاكل',
+    keyUrl: 'https://console.groq.com/keys',
+  },
+  {
+    id: 'groq-strong',
+    name: 'Groq قوي',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    model: 'openai/gpt-oss-20b',
+    visionModel: 'openai/gpt-oss-20b',
+    note: 'أقوى من 8B وما زال رخيص',
     keyUrl: 'https://console.groq.com/keys',
   },
   {
@@ -309,8 +318,8 @@ export const Settings: React.FC = () => {
                 style={{
                   padding: '8px 14px',
                   borderRadius: 10,
-                  border: ai.baseUrl === p.baseUrl ? '2px solid #7c6cf0' : '1px solid var(--border-color)',
-                  background: ai.baseUrl === p.baseUrl ? 'rgba(124,108,240,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: ai.model === p.model ? '2px solid #7c6cf0' : '1px solid var(--border-color)',
+                  background: ai.model === p.model ? 'rgba(124,108,240,0.15)' : 'rgba(255,255,255,0.04)',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '0.82rem',
@@ -322,10 +331,10 @@ export const Settings: React.FC = () => {
             ))}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
-            {AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.note || 'اختر مزوداً ثم أدخل مفتاحه'}
+            {AI_PRESETS.find((p) => p.model === ai.model)?.note || 'اختر مزوداً ثم أدخل مفتاحه'}
             {' · '}
             <a
-              href={AI_PRESETS.find((p) => p.baseUrl === ai.baseUrl)?.keyUrl || 'https://console.groq.com/keys'}
+              href={AI_PRESETS.find((p) => p.model === ai.model)?.keyUrl || 'https://console.groq.com/keys'}
               target="_blank"
               rel="noreferrer"
               style={{ color: '#a89bff' }}
@@ -366,7 +375,7 @@ export const Settings: React.FC = () => {
             label="نموذج النص"
             value={ai.model}
             onChange={(e) => setAi({ ...ai, model: e.target.value })}
-            placeholder="llama-3.3-70b-versatile"
+            placeholder="llama-3.1-8b-instant"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
@@ -374,7 +383,7 @@ export const Settings: React.FC = () => {
             label="نموذج الرؤية (للصور)"
             value={ai.visionModel}
             onChange={(e) => setAi({ ...ai, visionModel: e.target.value })}
-            placeholder="llama-3.2-11b-vision-preview"
+            placeholder="llama-3.1-8b-instant"
             dir="ltr"
             style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
           />
