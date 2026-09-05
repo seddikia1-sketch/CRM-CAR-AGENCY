@@ -73,10 +73,18 @@ function extractJson(text: string): unknown {
 }
 
 function buildSystemPrompt(): string {
-  return `أنت خبير قطع غيار سيارات لمكتب استيراد في الجزائر يشتري من الصين.
-مهمتك: تحديد القطعة المطلوبة لأي سيارة (صينية، يابانية، كورية، أوروبية...) مع أرقام OEM وبدائل شائعة يمكن توريدها من الصين.
+  return `أنت خبير قطع غيار سيارات محترف لمكتب استيراد في الجزائر يشتري من الصين.
 
-أجب دائماً بصيغة JSON فقط بهذا الشكل:
+مهمتك الوحيدة: تحديد القطعة المطلوبة لهذه السيارة المحددة فقط.
+
+قواعد صارمة:
+1. ركّز فقط على الماركة والموديل والسنة والـ VIN المعطاة.
+2. لا تقترح أبداً قطعاً لسيارات أخرى أو ماركات مختلفة.
+3. إذا كانت الصورة مرفقة، استخدمها لتحديد القطعة بدقة لهذه السيارة فقط.
+4. أعطِ أرقام OEM حقيقية إن عرفتها، وإلا اكتب وصفاً دقيقاً للمورد الصيني.
+5. لا تختلق معلومات.
+
+أجب دائماً بصيغة JSON فقط:
 {
   "vehicle_decoded": { "brand": "", "model": "", "year_range": "", "notes": "" },
   "parts": [
@@ -93,27 +101,22 @@ function buildSystemPrompt(): string {
     }
   ],
   "supplier_message_ar": "نص قصير جاهز لرسالة المورد"
-}
-
-قواعد:
-- إن وُجد VIN حاول استنتاج الماركة/الموديل من معرفة عامة (WMI) دون ادعاء دقة مطلقة.
-- أعطِ أرقام OEM حقيقية شائعة إن عرفتها، وإلا اذكر أوصافاً دقيقة للطلب من الصين.
-- للفلاتر والزيوت اقترح بدائل Mann/Bosch/WIX عند الإمكان.
-- لا تختلق أسعاراً. category واحدة من القيم المحددة فقط.
-- إن كانت الصورة مرفقة، حاول التعرف على نوع القطعة من الشكل/الكتابة عليها.`;
+}`;
 }
 
 function buildUserText(input: AiPartIdentifyInput): string {
   return [
-    'طلب تحديد قطعة غيار:',
+    '=== طلب تحديد قطعة غيار ===',
     input.vin ? `VIN: ${input.vin}` : '',
     input.brand ? `الماركة: ${input.brand}` : '',
     input.model ? `الموديل: ${input.model}` : '',
     input.year ? `السنة: ${input.year}` : '',
     input.color ? `اللون: ${input.color}` : '',
-    input.vehicleContext ? `سياق السيارة: ${input.vehicleContext}` : '',
-    `وصف القطعة المطلوبة: ${input.partQuery || '(انظر الصورة إن وُجدت)'}`,
-    'السوق: توريد من الصين لمكتب في تندوف/الجزائر.',
+    input.vehicleContext ? `سياق: ${input.vehicleContext}` : '',
+    `القطعة المطلوبة: ${input.partQuery || '(انظر الصورة)'}`,
+    '',
+    'مهم: أعطِ نتائج لهذه السيارة فقط. لا تذكر سيارات أخرى.',
+    'السوق: توريد من الصين لمكتب في الجزائر.',
   ]
     .filter(Boolean)
     .join('\n');
@@ -148,7 +151,6 @@ export async function identifyPartsWithAi(
     }
   }
 
-  // بعض المزودين يفضلون نصاً بسيطاً بدون vision
   const messages =
     hasImage
       ? [
@@ -169,7 +171,7 @@ export async function identifyPartsWithAi(
       },
       body: JSON.stringify({
         model,
-        temperature: 0.2,
+        temperature: 0.15,
         messages,
       }),
     });
