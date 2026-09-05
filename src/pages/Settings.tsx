@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { storage, STORAGE_KEYS } from '../services/storage';
 import { getOfficeSettings, saveOfficeSettings, type OfficeSettings } from '../services/officeSettings';
-import { getAiSettings, saveAiSettings, type AiSettings, DEFAULT_AI_SETTINGS } from '../services/aiSettings';
+import { getAiSettings, saveAiSettings, type AiSettings, DEFAULT_AI_SETTINGS, isAiConfigured } from '../services/aiSettings';
 import { downloadCsv, csvTimestamp } from '../utils/exportCsv';
 import { vehicleTotalCost, vehicleProfit } from '../utils/vehicleFinance';
 import { FUNNEL_STAGES, INVENTORY_STATUSES, PART_CATEGORIES } from '../utils/constants';
@@ -30,6 +30,7 @@ export const Settings: React.FC = () => {
   const [ai, setAi] = useState<AiSettings>(getAiSettings());
   const [saved, setSaved] = useState(false);
   const [aiSaved, setAiSaved] = useState(false);
+  const [aiError, setAiError] = useState('');
   const [copied, setCopied] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(() => localStorage.getItem(LAST_BACKUP_KEY));
 
@@ -179,9 +180,40 @@ export const Settings: React.FC = () => {
   };
 
   const saveAi = () => {
-    saveAiSettings(ai);
-    setAiSaved(true);
-    setTimeout(() => setAiSaved(false), 2000);
+    setAiError('');
+    const key = ai.apiKey.trim();
+    if (!key) {
+      setAiError('أدخل مفتاح API أولاً');
+      return;
+    }
+
+    // تفعيل تلقائي عند وجود مفتاح
+    const toSave: AiSettings = {
+      ...ai,
+      apiKey: key,
+      enabled: true,
+      baseUrl: ai.baseUrl.trim() || DEFAULT_AI_SETTINGS.baseUrl,
+      model: ai.model.trim() || DEFAULT_AI_SETTINGS.model,
+      visionModel: ai.visionModel.trim() || DEFAULT_AI_SETTINGS.visionModel,
+    };
+
+    try {
+      saveAiSettings(toSave);
+      setAi(toSave);
+
+      // تحقق فوري
+      const check = getAiSettings();
+      if (isAiConfigured(check)) {
+        setAiSaved(true);
+        setAiError('');
+        setTimeout(() => setAiSaved(false), 3000);
+      } else {
+        setAiError('تم الحفظ لكن التحقق فشل. جرب مسح بيانات الموقع ثم أعد المحاولة.');
+      }
+    } catch (err) {
+      console.error(err);
+      setAiError('فشل الحفظ في المتصفح. جرب متصفح آخر أو أوقف وضع التصفح الخاص.');
+    }
   };
 
   const copyStoreLink = async () => {
@@ -266,17 +298,34 @@ export const Settings: React.FC = () => {
             <br />• بدون مفتاح: يبقى الكتالوج المحلي يعمل في «طلب قطعة ذكي»
           </div>
 
+          {aiError && (
+            <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', fontSize: '0.85rem', color: '#fca5a5' }}>
+              {aiError}
+            </div>
+          )}
+
           <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
             <Button variant="primary" onClick={saveAi}>
-              {aiSaved ? '✓ تم الحفظ' : 'حفظ إعدادات AI'}
+              {aiSaved ? '✓ تم الحفظ والتفعيل بنجاح' : 'حفظ إعدادات AI'}
             </Button>
             <Button
               variant="ghost"
-              onClick={() => setAi({ ...DEFAULT_AI_SETTINGS })}
+              onClick={() => {
+                setAi({ ...DEFAULT_AI_SETTINGS });
+                saveAiSettings(DEFAULT_AI_SETTINGS);
+                setAiSaved(false);
+                setAiError('');
+              }}
             >
               إعادة الافتراضي
             </Button>
           </div>
+
+          {aiSaved && (
+            <p style={{ color: '#4ade80', fontSize: '0.9rem', marginTop: 4 }}>
+              ✅ المفتاح محفوظ ومفعّل. ارجع لـ «طلب قطعة ذكي» وجرب التعرف بالـ AI.
+            </p>
+          )}
         </div>
       </div>
 
