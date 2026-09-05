@@ -14,6 +14,7 @@ import {
 import { formatCurrency, getWhatsAppLink } from '../../utils/formatters';
 import { identifyPartsWithAi } from '../../services/partAi';
 import { getAiSettings, isAiConfigured } from '../../services/aiSettings';
+import { addAiRequestLog } from '../../services/aiRequestHistory';
 
 const LOW_STOCK_PO_KEY = 'crm_po_from_low_stock';
 
@@ -112,7 +113,6 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   }, [partQuery, brand, model, year, vin, activeVehicle?.vin, parts]);
 
   const suggestions = useMemo(() => {
-    // نعطي أولوية لاقتراحات AI ونفلتر التكرارات
     const merged = [...aiSuggestions, ...catalogSuggestions];
     const seen = new Set<string>();
     return merged.filter((s) => {
@@ -174,7 +174,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     }
     setAiLoading(true);
     setAiError('');
-    setAiSuggestions([]); // امسح الاقتراحات القديمة
+    setAiSuggestions([]);
 
     const result = await identifyPartsWithAi({
       vin: vin || activeVehicle?.vin,
@@ -187,6 +187,20 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
       vehicleContext: `${vehicleContext}. ركّز فقط على هذه السيارة ولا تقترح قطعاً لسيارات أخرى.`,
     });
     setAiLoading(false);
+
+    // حفظ في السجل
+    addAiRequestLog({
+      vin: vin || activeVehicle?.vin,
+      brand,
+      model,
+      year,
+      partQuery: partQuery || '(من صورة)',
+      hasPhoto: !!photoPreview,
+      suggestionsCount: result.suggestions.length,
+      topSuggestions: result.suggestions.slice(0, 3).map((s) => s.name),
+      error: result.error,
+    });
+
     if (result.error) setAiError(result.error);
     if (result.suggestions.length) {
       setAiSuggestions(result.suggestions);
@@ -359,47 +373,20 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
           </div>
         </div>
 
-        {/* رفع الصورة — كاميرا + معرض */}
         <div>
           <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <ImagePlus size={16} /> صورة القطعة أو السيارة (اختياري)
           </label>
-
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-            <Button
-              variant="secondary"
-              leftIcon={<ImageIcon size={16} />}
-              onClick={() => fileInputRef.current?.click()}
-            >
+            <Button variant="secondary" leftIcon={<ImageIcon size={16} />} onClick={() => fileInputRef.current?.click()}>
               من المعرض
             </Button>
-            <Button
-              variant="secondary"
-              leftIcon={<Camera size={16} />}
-              onClick={() => cameraInputRef.current?.click()}
-            >
+            <Button variant="secondary" leftIcon={<Camera size={16} />} onClick={() => cameraInputRef.current?.click()}>
               التقاط صورة
             </Button>
           </div>
-
-          {/* input للمعرض (بدون capture) */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(e) => onPhoto(e.target.files?.[0] || null)}
-          />
-          {/* input للكاميرا */}
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={(e) => onPhoto(e.target.files?.[0] || null)}
-          />
-
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => onPhoto(e.target.files?.[0] || null)} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={(e) => onPhoto(e.target.files?.[0] || null)} />
           {photoPreview && (
             <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
               <img src={photoPreview} alt="مرجع" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }} />
