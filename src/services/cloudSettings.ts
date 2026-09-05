@@ -2,6 +2,8 @@
 
 export interface CloudSettings {
   enabled: boolean;
+  /** مزامنة تلقائية: تنزيل عند الفتح + رفع بعد كل تعديل */
+  autoSync: boolean;
   url: string;
   anonKey: string;
   lastPushAt: string | null;
@@ -12,6 +14,7 @@ const KEY = 'crm_cloud_settings';
 
 export const DEFAULT_CLOUD_SETTINGS: CloudSettings = {
   enabled: false,
+  autoSync: true,
   url: '',
   anonKey: '',
   lastPushAt: null,

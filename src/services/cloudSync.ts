@@ -1,12 +1,15 @@
 /**
  * مزامنة بيانات CRM مع Supabase (جدول crm_store)
- * كل مفتاح localStorage يُحفظ كصف: key + value(jsonb)
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { storage, STORAGE_KEYS } from './storage';
+import { STORAGE_KEYS } from './storage';
 import { getCloudSettings, saveCloudSettings, isCloudConfigured } from './cloudSettings';
 
 const TABLE = 'crm_store';
+
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let suppressAutoPush = false;
+let bootstrapped = false;
 
 function getClient(): SupabaseClient | null {
   const s = getCloudSettings();
@@ -22,7 +25,6 @@ export type SyncResult = {
   keys?: number;
 };
 
-/** رفع كل بيانات المكتب إلى السحابة */
 export async function pushToCloud(): Promise<SyncResult> {
   const client = getClient();
   if (!client) {
@@ -43,7 +45,6 @@ export async function pushToCloud(): Promise<SyncResult> {
       }
     });
 
-    // إعدادات المكتب والـ AI والسحابة (بدون مفاتيح حساسة اختيارياً — نرفع المكتب فقط)
     const office = localStorage.getItem('crm_office_settings');
     if (office) {
       try {
@@ -69,8 +70,7 @@ export async function pushToCloud(): Promise<SyncResult> {
   }
 }
 
-/** تنزيل البيانات من السحابة إلى هذا الجهاز */
-export async function pullFromCloud(): Promise<SyncResult> {
+export async function pullFromCloud(options?: { silent?: boolean }): Promise<SyncResult> {
   const client = getClient();
   if (!client) {
     return { ok: false, message: 'فعّل السحابة وأدخل رابط ومفتاح Supabase أولاً' };
@@ -85,22 +85,27 @@ export async function pullFromCloud(): Promise<SyncResult> {
       return { ok: false, message: 'السحابة فارغة — ارفع البيانات من جهاز فيه بيانات أولاً' };
     }
 
+    suppressAutoPush = true;
     let applied = 0;
     for (const row of data) {
       if (!row.key) continue;
       try {
         localStorage.setItem(row.key, JSON.stringify(row.value));
         applied += 1;
-      } catch {
-        /* quota */
-      }
+      } catch { /* quota */ }
     }
+    // امنع رفع فوري بعد التنزيل
+    setTimeout(() => {
+      suppressAutoPush = false;
+    }, 2000);
 
     const settings = getCloudSettings();
     saveCloudSettings({ ...settings, lastPullAt: new Date().toISOString() });
     return {
       ok: true,
-      message: `تم تنزيل ${applied} مجموعة. سيتم تحديث الصفحة.`,
+      message: options?.silent
+        ? `مزامنة: ${applied} مجموعة`
+        : `تم تنزيل ${applied} مجموعة. سيتم تحديث الصفحة.`,
       keys: applied,
     };
   } catch (e) {
@@ -109,7 +114,6 @@ export async function pullFromCloud(): Promise<SyncResult> {
   }
 }
 
-/** اختبار الاتصال */
 export async function testCloudConnection(): Promise<SyncResult> {
   const client = getClient();
   if (!client) {
@@ -123,4 +127,37 @@ export async function testCloudConnection(): Promise<SyncResult> {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, message: msg };
   }
+}
+
+/** جدولة رفع تلقائي بعد التعديلات (تأخير 2.5 ثانية) */
+export function scheduleAutoPush(): void {
+  const s = getCloudSettings();
+  if (!isCloudConfigured(s) || !s.autoSync || suppressAutoPush) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void pushToCloud();
+  }, 2500);
+}
+
+/**
+ * عند فتح التطبيق: تنزيل من السحابة إن كانت المزامنة التلقائية مفعّلة
+ * يُستدعى مرة واحدة من AppProvider
+ */
+export async function bootstrapCloudSync(): Promise<{ pulled: boolean; message?: string }> {
+  if (bootstrapped) return { pulled: false };
+  bootstrapped = true;
+
+  const s = getCloudSettings();
+  if (!isCloudConfigured(s) || !s.autoSync) return { pulled: false };
+
+  const result = await pullFromCloud({ silent: true });
+  if (result.ok) {
+    return { pulled: true, message: result.message };
+  }
+  // إن كانت السحابة فارغة، ارفع المحلي مرة
+  if (result.message.includes('فارغة')) {
+    await pushToCloud();
+  }
+  return { pulled: false, message: result.message };
 }

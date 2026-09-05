@@ -1,5 +1,6 @@
 /**
  * Local Storage Service — مفاتيح تخزين CRM السيارات
+ * مع إشعار المزامنة التلقائية عند الكتابة
  */
 
 export const STORAGE_KEYS = {
@@ -17,6 +18,15 @@ export const STORAGE_KEYS = {
   SUPPLIER: 'crm_supplier',
 } as const;
 
+function notifyCloudWrite() {
+  try {
+    // استيراد ديناميكي لتجنب حلقات التحميل
+    void import('./cloudSync').then((m) => m.scheduleAutoPush());
+  } catch {
+    /* ignore */
+  }
+}
+
 export const storage = {
   get<T>(key: string): T | null {
     try {
@@ -30,6 +40,7 @@ export const storage = {
   set<T>(key: string, value: T): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      notifyCloudWrite();
     } catch (e) {
       console.error('Storage write error:', e);
     }
@@ -37,10 +48,12 @@ export const storage = {
 
   remove(key: string): void {
     localStorage.removeItem(key);
+    notifyCloudWrite();
   },
 
   clearAll(): void {
     Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    notifyCloudWrite();
   },
 
   exportData(): string {
@@ -60,6 +73,7 @@ export const storage = {
           localStorage.setItem(key, JSON.stringify(data[name]));
         }
       });
+      notifyCloudWrite();
       return true;
     } catch {
       return false;
