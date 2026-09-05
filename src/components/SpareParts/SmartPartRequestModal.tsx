@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ImagePlus, PackagePlus, MessageCircle, Car, Sparkles, Loader2 } from 'lucide-react';
+import { Search, ImagePlus, PackagePlus, MessageCircle, Car, Sparkles, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
 import { Input } from '../UI/Input';
@@ -44,6 +44,8 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   supplier,
 }) => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [vin, setVin] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [partQuery, setPartQuery] = useState('');
@@ -110,6 +112,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
   }, [partQuery, brand, model, year, vin, activeVehicle?.vin, parts]);
 
   const suggestions = useMemo(() => {
+    // نعطي أولوية لاقتراحات AI ونفلتر التكرارات
     const merged = [...aiSuggestions, ...catalogSuggestions];
     const seen = new Set<string>();
     return merged.filter((s) => {
@@ -140,14 +143,14 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
       alert('يرجى اختيار صورة');
       return;
     }
-    if (file.size > 2.5 * 1024 * 1024) {
-      alert('الصورة كبيرة — أقل من 2.5 ميجا');
+    if (file.size > 4 * 1024 * 1024) {
+      alert('الصورة كبيرة — يفضل أقل من 4 ميجا');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       setPhotoPreview(String(reader.result || ''));
-      setPhotoName(file.name);
+      setPhotoName(file.name || 'صورة');
     };
     reader.readAsDataURL(file);
   };
@@ -171,15 +174,17 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     }
     setAiLoading(true);
     setAiError('');
+    setAiSuggestions([]); // امسح الاقتراحات القديمة
+
     const result = await identifyPartsWithAi({
       vin: vin || activeVehicle?.vin,
       brand,
       model,
       year,
       color: activeVehicle?.color,
-      partQuery: partQuery || 'تعرّف على القطعة من الصورة',
+      partQuery: partQuery || 'تعرّف على القطعة من الصورة بدقة',
       imageDataUrl: photoPreview,
-      vehicleContext,
+      vehicleContext: `${vehicleContext}. ركّز فقط على هذه السيارة ولا تقترح قطعاً لسيارات أخرى.`,
     });
     setAiLoading(false);
     if (result.error) setAiError(result.error);
@@ -187,7 +192,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
       setAiSuggestions(result.suggestions);
       const next: Record<string, boolean> = {};
       result.suggestions.slice(0, 3).forEach((s) => { next[s.id] = true; });
-      setSelected((prev) => ({ ...prev, ...next }));
+      setSelected(next);
     } else if (!result.error) {
       setAiError('لم تُرجع الخدمة اقتراحات');
     }
@@ -255,7 +260,6 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
     window.open(getWhatsAppLink(phone, msg), '_blank');
   };
 
-  // كل السيارات بما فيها المباعة — لطلب قطع لعميل اشترى سابقاً
   const allVehicles = useMemo(
     () => [...vehicles].sort((a, b) => (a.status === 'sold' ? 1 : 0) - (b.status === 'sold' ? 1 : 0)),
     [vehicles]
@@ -341,7 +345,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
               label="اسم القطعة أو وصفها"
               value={partQuery}
               onChange={(e) => setPartQuery(e.target.value)}
-              placeholder="فلتر زيت · طقم فرامل أمامي · حساس ABS..."
+              placeholder="فلتر زيت · طقم فرامل أمامي · باب السائق..."
               leftIcon={<Search size={16} />}
             />
           </div>
@@ -355,22 +359,54 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
           </div>
         </div>
 
+        {/* رفع الصورة — كاميرا + معرض */}
         <div>
-          <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <ImagePlus size={16} /> صورة القطعة (للـ AI إن كان النموذج يدعم الرؤية)
+          <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <ImagePlus size={16} /> صورة القطعة أو السيارة (اختياري)
           </label>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <Button
+              variant="secondary"
+              leftIcon={<ImageIcon size={16} />}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              من المعرض
+            </Button>
+            <Button
+              variant="secondary"
+              leftIcon={<Camera size={16} />}
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              التقاط صورة
+            </Button>
+          </div>
+
+          {/* input للمعرض (بدون capture) */}
           <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => onPhoto(e.target.files?.[0] || null)}
+          />
+          {/* input للكاميرا */}
+          <input
+            ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="environment"
+            style={{ display: 'none' }}
             onChange={(e) => onPhoto(e.target.files?.[0] || null)}
-            style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}
           />
+
           {photoPreview && (
             <div style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
-              <img src={photoPreview} alt="مرجع" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }} />
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{photoName}</span>
-              <Button variant="ghost" onClick={() => onPhoto(null)}>إزالة</Button>
+              <img src={photoPreview} alt="مرجع" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border-color)' }} />
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{photoName}</div>
+                <Button variant="ghost" onClick={() => onPhoto(null)} style={{ marginTop: 4 }}>إزالة الصورة</Button>
+              </div>
             </div>
           )}
         </div>
@@ -407,7 +443,7 @@ export const SmartPartRequestModal: React.FC<SmartPartRequestModalProps> = ({
 
           {suggestions.length === 0 ? (
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              اكتب الوصف أو شغّل AI لعرض النتائج.
+              اكتب الوصف أو أرفق صورة ثم اضغط «تعرّف بالـ AI».
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
