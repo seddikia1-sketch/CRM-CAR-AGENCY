@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { supabase, isLocalMode } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { logger } from '../lib/logger';
+import { bootstrapCloudSync } from '../services/cloudSync';
 
 const LOCAL_USER_KEY = 'crm_local_user';
 
@@ -65,7 +66,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [updateState]);
 
   const refreshAuth = useCallback(async () => {
-    // وضع محلي
     if (isLocalMode) {
       try {
         const saved = localStorage.getItem(LOCAL_USER_KEY);
@@ -88,7 +88,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // وضع Supabase
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) throw error;
@@ -109,6 +108,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     refreshAuth();
+
+    // مزامنة سحابية تلقائية عند الفتح
+    void bootstrapCloudSync().then((r) => {
+      if (r.pulled) {
+        // إعادة تحميل مرة واحدة لتطبيق البيانات الجديدة من السحابة
+        const flag = 'crm_cloud_boot_reload';
+        if (!sessionStorage.getItem(flag)) {
+          sessionStorage.setItem(flag, '1');
+          window.location.reload();
+        }
+      }
+    });
 
     if (isLocalMode) return;
 
