@@ -6,7 +6,7 @@ import type { Vehicle } from '../../types';
 import type { Client } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { vehicleTotalCost } from '../../utils/vehicleFinance';
-import { printVehicleSaleInvoice } from '../../utils/printInvoice';
+import { printVehicleSaleInvoice, printSalesContract } from '../../utils/printInvoice';
 import { nextInvoiceNumber } from '../../utils/invoiceNumbers';
 
 interface SellModalProps {
@@ -27,12 +27,14 @@ export const SellModal: React.FC<SellModalProps> = ({
   const [selectedClientId, setSelectedClientId] = useState('');
   const [finalPrice, setFinalPrice] = useState(0);
   const [printAfter, setPrintAfter] = useState(true);
+  const [printContract, setPrintContract] = useState(true);
 
   React.useEffect(() => {
     if (vehicle) {
       setFinalPrice(vehicle.sellingPrice || 0);
       setSelectedClientId('');
       setPrintAfter(true);
+      setPrintContract(true);
     }
   }, [vehicle]);
 
@@ -46,14 +48,25 @@ export const SellModal: React.FC<SellModalProps> = ({
     if (!selectedClient) return;
     const invNo = nextInvoiceNumber('INV');
     onConfirm(selectedClient.id, selectedClient.name, finalPrice, invNo);
+    const soldAt = new Date().toISOString();
     if (printAfter) {
       printVehicleSaleInvoice({
         vehicle: { ...vehicle, sellingPrice: finalPrice },
         clientName: selectedClient.name,
         clientPhone: selectedClient.phone,
         finalPrice,
-        soldAt: new Date().toISOString(),
+        soldAt,
         invoiceNumber: invNo,
+      });
+    }
+    if (printContract) {
+      printSalesContract({
+        vehicle: { ...vehicle, sellingPrice: finalPrice },
+        clientName: selectedClient.name,
+        clientPhone: selectedClient.phone,
+        finalPrice,
+        soldAt,
+        contractNumber: invNo.replace('INV', 'CT'),
       });
     }
     onClose();
@@ -77,8 +90,8 @@ export const SellModal: React.FC<SellModalProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div className="glass-card" style={{ padding: '12px' }}>
           <strong>{vehicle.brand} {vehicle.model} {vehicle.year}</strong>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.7 }}>
-            <div>سعر الاستيراد: {formatCurrency(vehicle.importPrice || 0)}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 6 }}>
+            <div>استيراد: {formatCurrency(vehicle.importPrice || 0)}</div>
             {(vehicle.shippingCost || 0) > 0 && <div>شحن: {formatCurrency(vehicle.shippingCost)}</div>}
             {(vehicle.customsCost || 0) > 0 && <div>جمركة: {formatCurrency(vehicle.customsCost)}</div>}
             {(vehicle.repairCost || 0) > 0 && <div>إصلاح/تجهيز: {formatCurrency(vehicle.repairCost)}</div>}
@@ -118,6 +131,14 @@ export const SellModal: React.FC<SellModalProps> = ({
           />
           طباعة فاتورة البيع بعد التأكيد
         </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
+          <input
+            type="checkbox"
+            checked={printContract}
+            onChange={(e) => setPrintContract(e.target.checked)}
+          />
+          طباعة عقد البيع بعد التأكيد
+        </label>
 
         <div style={{
           padding: '12px',
@@ -132,7 +153,7 @@ export const SellModal: React.FC<SellModalProps> = ({
             {formatCurrency(profit)}
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            بعد البيع تُخفى السيارة من المتجر وصفحة الهبوط تلقائياً · يُحفظ رقم الفاتورة مع السجل
+            بعد البيع تُخفى السيارة من المتجر · يُحفظ رقم الفاتورة مع السجل
           </div>
         </div>
       </div>

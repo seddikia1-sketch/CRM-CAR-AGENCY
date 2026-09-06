@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, UserCheck, Printer } from 'lucide-react';
-import type { Vehicle } from '../../types';
-import { INVENTORY_STATUSES } from '../../utils/constants';
-import { formatCurrency, formatDate } from '../../utils/formatters';
-import { vehicleProfit, vehicleTotalCost } from '../../utils/vehicleFinance';
-import { printVehicleSaleInvoice } from '../../utils/printInvoice';
+import { Edit, Trash2, MoreHorizontal, UserCheck, Printer } from 'lucide-react';
 import { Badge } from '../UI/Badge';
-import '../Clients/ClientTable.css';
+import type { Vehicle } from '../../types';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import { INVENTORY_STATUSES } from '../../utils/constants';
+import { vehicleProfit, vehicleTotalCost } from '../../utils/vehicleFinance';
+import { printVehicleSaleInvoice, printSalesContract } from '../../utils/printInvoice';
 
 interface InventoryTableProps {
   vehicles: Vehicle[];
@@ -29,18 +28,10 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   };
 
   React.useEffect(() => {
-    const closeMenu = () => setActiveMenu(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
+    const close = () => setActiveMenu(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
   }, []);
-
-  if (vehicles.length === 0) {
-    return (
-      <div className="empty-state">
-        <p>لا توجد سيارات في المخزون حالياً.</p>
-      </div>
-    );
-  }
 
   const getStatusInfo = (status: string) => {
     return INVENTORY_STATUSES.find((s) => s.key === status) || { label: status, emoji: '', color: '#999' };
@@ -56,6 +47,20 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
       finalPrice: v.sellingPrice || 0,
       soldAt: v.soldAt,
       invoiceNumber: v.invoiceNumber || fallback,
+    });
+    setActiveMenu(null);
+  };
+
+  const reprintContract = (v: Vehicle) => {
+    if (!v.soldToClientName) return;
+    const year = v.soldAt ? new Date(v.soldAt).getFullYear() : new Date().getFullYear();
+    const inv = v.invoiceNumber || `INV-${year}-R${v.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+    printSalesContract({
+      vehicle: v,
+      clientName: v.soldToClientName,
+      finalPrice: v.sellingPrice || 0,
+      soldAt: v.soldAt,
+      contractNumber: inv.replace('INV', 'CT'),
     });
     setActiveMenu(null);
   };
@@ -128,9 +133,14 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                           </button>
                         )}
                         {v.status === 'sold' && v.soldToClientName && (
-                          <button className="menu-item" onClick={() => reprintInvoice(v)}>
-                            <Printer size={16} /> طباعة الفاتورة
-                          </button>
+                          <>
+                            <button className="menu-item" onClick={() => reprintInvoice(v)}>
+                              <Printer size={16} /> طباعة الفاتورة
+                            </button>
+                            <button className="menu-item" onClick={() => reprintContract(v)}>
+                              <Printer size={16} /> طباعة عقد البيع
+                            </button>
+                          </>
                         )}
                         <button className="menu-item" onClick={() => { onEdit(v); setActiveMenu(null); }}>
                           <Edit size={16} /> تعديل
@@ -147,6 +157,11 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
           })}
         </tbody>
       </table>
+      {vehicles.length === 0 && (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>
+          لا توجد سيارات في هذه القائمة
+        </div>
+      )}
     </div>
   );
 };
