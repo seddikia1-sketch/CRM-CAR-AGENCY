@@ -62,7 +62,7 @@ const PRINT_CSS = `
     th, td {
       border: 1px solid #ddd; padding: 10px 12px; text-align: right; font-size: 0.95rem;
     }
-    th { background: #f4f4f8; font-weight: 700; width: 38%; }
+    th { background: #f4f4f8; font-weight: 700; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .box {
       border: 1px solid #ddd; border-radius: 10px; padding: 12px 14px; background: #fafafa;
@@ -73,6 +73,11 @@ const PRINT_CSS = `
       background: #f0f4ff; border: 1px solid #c7d2fe; font-size: 1.05rem;
     }
     .footer-note { margin-top: 28px; font-size: 0.8rem; color: #666; text-align: center; }
+    .clause { margin: 0 0 10px; line-height: 1.75; font-size: 0.92rem; text-align: justify; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 28px; }
+    .sign-box { border: 1px solid #ccc; border-radius: 10px; min-height: 120px; padding: 12px; }
+    .sign-box h4 { margin: 0 0 10px; font-size: 0.95rem; }
+    .muted { color: #666; font-size: 0.8rem; margin-top: 24px; text-align: center; }
     @media print {
       body { padding: 12px; }
       .no-print { display: none !important; }
@@ -84,6 +89,7 @@ export interface SaleInvoiceData {
   clientName: string;
   clientPhone?: string;
   finalPrice: number;
+  deposit?: number;
   soldAt?: string;
   invoiceNumber?: string;
 }
@@ -91,9 +97,9 @@ export interface SaleInvoiceData {
 export function printVehicleSaleInvoice(data: SaleInvoiceData): string {
   const office = getOfficeSettings();
   const v = data.vehicle;
-  const inv =
-    data.invoiceNumber ||
-    nextInvoiceNumber('INV');
+  const inv = data.invoiceNumber || nextInvoiceNumber('INV');
+  const dep = data.deposit || 0;
+  const rem = Math.max((data.finalPrice || 0) - dep, 0);
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head><meta charset="utf-8" /><title>فاتورة ${esc(inv)}</title>
@@ -122,7 +128,10 @@ export function printVehicleSaleInvoice(data: SaleInvoiceData): string {
       <tr><th>VIN</th><td dir="ltr" style="text-align:left">${esc(v.vin || '—')}</td></tr>
       <tr><th>المسافة</th><td>${v.mileage ? v.mileage.toLocaleString('ar-DZ') + ' كم' : '—'}</td></tr>
     </table>
-    <div class="total">المبلغ المستحق: <strong>${money(data.finalPrice)}</strong></div>
+    <div class="total">
+      المبلغ: <strong>${money(data.finalPrice)}</strong><br/>
+      عربون: ${money(dep)} · المتبقي: ${money(rem)}
+    </div>
     <p class="footer-note">شكراً لتعاملكم معنا · ${esc(office.note || '')}</p>
     <p class="no-print" style="text-align:center;margin-top:16px">
       <button onclick="window.print()">طباعة</button>
@@ -165,14 +174,22 @@ export function printPartSaleInvoice(data: PartSaleInvoiceData): string {
       </div>
     </div>
     <h1 class="title">فاتورة بيع قطع غيار</h1>
+    <div class="row-2">
+      <div class="box"><h3>العميل</h3><div>${esc(data.clientName || 'زائر')}</div></div>
+      <div class="box"><h3>المكتب</h3><div>${esc(office.officeName)}</div>
+        <div class="meta">${esc(office.phone || '')}</div></div>
+    </div>
     <table>
-      <tr><th>القطعة</th><td>${esc(p.name)}</td></tr>
-      <tr><th>الرقم</th><td>${esc(p.partNumber || '—')}</td></tr>
-      <tr><th>الكمية</th><td>${data.qty}</td></tr>
-      <tr><th>سعر الوحدة</th><td>${money(data.unitPrice)}</td></tr>
-      <tr><th>العميل</th><td>${esc(data.clientName || '—')}</td></tr>
+      <tr><th>البيان</th><th>الكمية</th><th>سعر الوحدة</th><th>المجموع</th></tr>
+      <tr>
+        <td>${esc(p.name)}${p.partNumber ? ' · ' + esc(p.partNumber) : ''}${p.brand ? ' · ' + esc(p.brand) : ''}</td>
+        <td>${data.qty}</td>
+        <td>${money(data.unitPrice)}</td>
+        <td><strong>${money(total)}</strong></td>
+      </tr>
     </table>
-    <div class="total">الإجمالي: <strong>${money(total)}</strong></div>
+    <div class="total">الإجمالي المستحق: <strong>${money(total)}</strong></div>
+    <p class="footer-note">شكراً لتعاملكم · ${esc(office.note || '')}</p>
     <p class="no-print" style="text-align:center;margin-top:16px"><button onclick="window.print()">طباعة</button></p>
   </div>
   <script>setTimeout(function(){ window.print(); }, 350);</script>
@@ -194,14 +211,11 @@ export interface SalesContractData {
   notes?: string;
 }
 
-/** عقد بيع سيارة للطباعة (نموذج استرشادي) */
 export function printSalesContract(data: SalesContractData): void {
   const office = getOfficeSettings();
   const v = data.vehicle;
   const year = data.soldAt ? new Date(data.soldAt).getFullYear() : new Date().getFullYear();
-  const contractNo =
-    data.contractNumber ||
-    `CT-${year}-${String(Date.now()).slice(-6)}`;
+  const contractNo = data.contractNumber || `CT-${year}-${String(Date.now()).slice(-6)}`;
   const price = data.finalPrice || 0;
   const deposit = data.deposit || 0;
   const remaining = Math.max(price - deposit, 0);
@@ -212,101 +226,51 @@ export function printSalesContract(data: SalesContractData): void {
 <head>
   <meta charset="utf-8" />
   <title>عقد بيع ${esc(contractNo)}</title>
-  <style>
-${PRINT_CSS}
-    .clause { margin: 0 0 10px; line-height: 1.75; font-size: 0.92rem; text-align: justify; }
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 28px; }
-    .sign-box { border: 1px solid #ccc; border-radius: 10px; min-height: 120px; padding: 12px; }
-    .sign-box h4 { margin: 0 0 10px; font-size: 0.95rem; }
-    .muted { color: #666; font-size: 0.8rem; margin-top: 24px; text-align: center; }
-  </style>
+  <style>${PRINT_CSS}</style>
 </head>
 <body>
   <div class="sheet">
     <div class="header">
       <div>
         <p class="office-name">${esc(office.officeName)}</p>
-        <div class="meta">
-          ${esc(office.city || '')}<br/>
-          هاتف: ${esc(office.phone || '')} · واتساب: ${esc(office.whatsapp || '')}
-        </div>
+        <div class="meta">${esc(office.city || '')}<br/>هاتف: ${esc(office.phone || '')} · واتساب: ${esc(office.whatsapp || '')}</div>
       </div>
       <div style="text-align:left">
         <span class="badge">عقد بيع</span>
-        <div class="meta" style="margin-top:8px">
-          رقم العقد: <strong>${esc(contractNo)}</strong><br/>
-          التاريخ: ${fmtDate(data.soldAt)}
-        </div>
+        <div class="meta" style="margin-top:8px">رقم العقد: <strong>${esc(contractNo)}</strong><br/>التاريخ: ${fmtDate(data.soldAt)}</div>
       </div>
     </div>
-
     <h1 class="title">عقد بيع سيارة</h1>
-    <p class="clause">
-      تم الاتفاق بين الطرفين المذكورين أدناه، وهما بكامل الأهلية القانونية، على بيع السيارة المبينة أوصافها، وفق الشروط التالية:
-    </p>
-
+    <p class="clause">تم الاتفاق بين الطرفين على بيع السيارة المبينة أدناه.</p>
     <div class="row-2">
-      <div class="box">
-        <h3>الطرف الأول — البائع</h3>
-        <div>${esc(office.officeName)}</div>
-        <div class="meta">${esc(office.city)} · ${esc(office.phone)}</div>
-      </div>
-      <div class="box">
-        <h3>الطرف الثاني — المشتري</h3>
-        <div>${esc(data.clientName)}</div>
-        <div class="meta">
-          هاتف: ${esc(data.clientPhone || '—')}<br/>
-          رقم التعريف: ${esc(data.clientIdNumber || '....................')}<br/>
-          العنوان: ${esc(data.clientAddress || '................................')}
-        </div>
+      <div class="box"><h3>البائع</h3><div>${esc(office.officeName)}</div><div class="meta">${esc(office.phone)}</div></div>
+      <div class="box"><h3>المشتري</h3><div>${esc(data.clientName)}</div>
+        <div class="meta">هاتف: ${esc(data.clientPhone || '—')}<br/>رقم التعريف: ${esc(data.clientIdNumber || '....................')}<br/>العنوان: ${esc(data.clientAddress || '................................')}</div>
       </div>
     </div>
-
-    <h3 style="margin:16px 0 8px">مواصفات السيارة</h3>
     <table>
       <tr><th>الماركة / الموديل</th><td>${esc(v.brand)} ${esc(v.model)}</td></tr>
       <tr><th>السنة</th><td>${v.year || '—'}</td></tr>
       <tr><th>اللون</th><td>${esc(v.color || '—')}</td></tr>
-      <tr><th>رقم الهيكل (VIN)</th><td dir="ltr" style="text-align:left">${esc(v.vin || '—')}</td></tr>
-      <tr><th>المسافة المقطوعة</th><td>${v.mileage ? v.mileage.toLocaleString('ar-DZ') + ' كم' : '—'}</td></tr>
+      <tr><th>VIN</th><td dir="ltr" style="text-align:left">${esc(v.vin || '—')}</td></tr>
+      <tr><th>المسافة</th><td>${v.mileage ? v.mileage.toLocaleString('ar-DZ') + ' كم' : '—'}</td></tr>
       <tr><th>الحالة</th><td>${esc(condLabel)}</td></tr>
-      <tr><th>ملاحظات</th><td>${esc(data.notes || v.notes || '—')}</td></tr>
     </table>
-
-    <div class="total">
-      ثمن البيع: <strong>${money(price)}</strong><br/>
-      عربون: ${money(deposit)} · المتبقي: ${money(remaining)}
-    </div>
-
-    <h3 style="margin:18px 0 8px">الشروط الأساسية</h3>
-    <p class="clause">1) يصرّح البائع بأن السيارة خالية من أي رهن أو حجز معلوم لديه وقت التوقيع.</p>
-    <p class="clause">2) يلتزم البائع بتسليم السيارة والوثائق المتوفرة حسب وضعيتها.</p>
-    <p class="clause">3) يقرّ المشتري بمعاينة السيارة أو قبول أوصافها الواردة في هذا العقد.</p>
-    <p class="clause">4) لا تُستكمل إجراءات نقل الملكية إلا بعد استيفاء كامل الثمن ما لم يُتفق كتابةً على خلاف ذلك.</p>
-    <p class="clause">5) العربون يخضع للاتفاق الخاص بين الطرفين عند العدول عن الشراء.</p>
-    <p class="clause">6) يُحرّر هذا العقد من نسختين، بيد كل طرف نسخة.</p>
-
+    <div class="total">ثمن البيع: <strong>${money(price)}</strong><br/>عربون: ${money(deposit)} · المتبقي: ${money(remaining)}</div>
+    <p class="clause">1) يصرّح البائع بخلو السيارة من رهن أو حجز معلوم.</p>
+    <p class="clause">2) يلتزم البائع بالتسليم والوثائق المتوفرة.</p>
+    <p class="clause">3) يقرّ المشتري بالمعاينة أو قبول الأوصاف.</p>
+    <p class="clause">4) استكمال نقل الملكية بعد استيفاء الثمن ما لم يُتفق خلاف ذلك.</p>
+    <p class="clause">5) يُحرّر العقد من نسختين.</p>
     <div class="sign-row">
-      <div class="sign-box">
-        <h4>توقيع البائع</h4>
-        <div class="meta">الاسم: ....................</div>
-        <div class="meta">الختم / التوقيع</div>
-      </div>
-      <div class="sign-box">
-        <h4>توقيع المشتري</h4>
-        <div class="meta">الاسم: ${esc(data.clientName)}</div>
-        <div class="meta">التوقيع</div>
-      </div>
+      <div class="sign-box"><h4>توقيع البائع</h4></div>
+      <div class="sign-box"><h4>توقيع المشتري</h4><div class="meta">${esc(data.clientName)}</div></div>
     </div>
-
-    <p class="muted">نموذج استرشادي — يُراجع عند الحاجة مع مستشار قانوني.</p>
-    <p class="no-print" style="text-align:center;margin-top:20px">
-      <button onclick="window.print()" style="padding:10px 20px;font-size:1rem;cursor:pointer">طباعة العقد</button>
-    </p>
+    <p class="muted">نموذج استرشادي — يُراجع مع مستشار قانوني عند الحاجة.</p>
+    <p class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()">طباعة العقد</button></p>
   </div>
   <script>setTimeout(function(){ window.print(); }, 400);</script>
 </body>
 </html>`;
-
   openPrintWindow(html, `عقد بيع ${contractNo}`);
 }
