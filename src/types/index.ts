@@ -62,6 +62,10 @@ export interface Client {
   funnelStage: FunnelStage;
   source: LeadSource;
   notes: string;
+  /** رقم التعريف الوطني */
+  nationalId?: string;
+  /** عنوان السكن */
+  address?: string;
   createdAt: string;
   updatedAt: string;
   lastContactAt: string;
@@ -71,6 +75,8 @@ export interface ClientFormData {
   name: string;
   phone: string;
   email: string;
+  nationalId?: string;
+  address?: string;
   vehicleInterest: string;
   brand: string;
   model: string;
