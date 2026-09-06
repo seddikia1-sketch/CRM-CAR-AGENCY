@@ -26,12 +26,14 @@ export const SellModal: React.FC<SellModalProps> = ({
 }) => {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [finalPrice, setFinalPrice] = useState(0);
+  const [deposit, setDeposit] = useState(0);
   const [printAfter, setPrintAfter] = useState(true);
   const [printContract, setPrintContract] = useState(true);
 
   React.useEffect(() => {
     if (vehicle) {
       setFinalPrice(vehicle.sellingPrice || 0);
+      setDeposit(0);
       setSelectedClientId('');
       setPrintAfter(true);
       setPrintContract(true);
@@ -43,6 +45,7 @@ export const SellModal: React.FC<SellModalProps> = ({
   const selectedClient = clients.find((c) => c.id === selectedClientId);
   const totalCost = vehicleTotalCost(vehicle);
   const profit = finalPrice - totalCost;
+  const remaining = Math.max((finalPrice || 0) - (deposit || 0), 0);
 
   const handleConfirm = () => {
     if (!selectedClient) return;
@@ -55,6 +58,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         clientName: selectedClient.name,
         clientPhone: selectedClient.phone,
         finalPrice,
+        deposit,
         soldAt,
         invoiceNumber: invNo,
       });
@@ -64,7 +68,10 @@ export const SellModal: React.FC<SellModalProps> = ({
         vehicle: { ...vehicle, sellingPrice: finalPrice },
         clientName: selectedClient.name,
         clientPhone: selectedClient.phone,
+        clientIdNumber: selectedClient.nationalId || '',
+        clientAddress: selectedClient.address || '',
         finalPrice,
+        deposit,
         soldAt,
         contractNumber: invNo.replace('INV', 'CT'),
       });
@@ -91,12 +98,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         <div className="glass-card" style={{ padding: '12px' }}>
           <strong>{vehicle.brand} {vehicle.model} {vehicle.year}</strong>
           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 6 }}>
-            <div>استيراد: {formatCurrency(vehicle.importPrice || 0)}</div>
-            {(vehicle.shippingCost || 0) > 0 && <div>شحن: {formatCurrency(vehicle.shippingCost)}</div>}
-            {(vehicle.customsCost || 0) > 0 && <div>جمركة: {formatCurrency(vehicle.customsCost)}</div>}
-            {(vehicle.repairCost || 0) > 0 && <div>إصلاح/تجهيز: {formatCurrency(vehicle.repairCost)}</div>}
-            {(vehicle.otherCosts || 0) > 0 && <div>أخرى: {formatCurrency(vehicle.otherCosts)}</div>}
-            <div style={{ fontWeight: 700, marginTop: 4 }}>إجمالي التكلفة: {formatCurrency(totalCost)}</div>
+            <div>إجمالي التكلفة: {formatCurrency(totalCost)}</div>
           </div>
         </div>
 
@@ -122,21 +124,22 @@ export const SellModal: React.FC<SellModalProps> = ({
           value={finalPrice || ''}
           onChange={(e) => setFinalPrice(Number(e.target.value) || 0)}
         />
+        <Input
+          label="العربون المدفوع (دج)"
+          type="number"
+          value={deposit || ''}
+          onChange={(e) => setDeposit(Number(e.target.value) || 0)}
+        />
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          المتبقي: <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(remaining)}</strong>
+        </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
-          <input
-            type="checkbox"
-            checked={printAfter}
-            onChange={(e) => setPrintAfter(e.target.checked)}
-          />
+          <input type="checkbox" checked={printAfter} onChange={(e) => setPrintAfter(e.target.checked)} />
           طباعة فاتورة البيع بعد التأكيد
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.9rem' }}>
-          <input
-            type="checkbox"
-            checked={printContract}
-            onChange={(e) => setPrintContract(e.target.checked)}
-          />
+          <input type="checkbox" checked={printContract} onChange={(e) => setPrintContract(e.target.checked)} />
           طباعة عقد البيع بعد التأكيد
         </label>
 
@@ -146,14 +149,9 @@ export const SellModal: React.FC<SellModalProps> = ({
           background: profit >= 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
           border: `1px solid ${profit >= 0 ? '#22c55e' : '#ef4444'}`,
         }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            ربح الصفقة = سعر البيع − (استيراد + شحن + جمركة + إصلاح + أخرى)
-          </div>
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>ربح الصفقة</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: profit >= 0 ? '#22c55e' : '#ef4444' }}>
             {formatCurrency(profit)}
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-            بعد البيع تُخفى السيارة من المتجر · يُحفظ رقم الفاتورة مع السجل
           </div>
         </div>
       </div>
