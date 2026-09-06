@@ -19,6 +19,8 @@ const defaultData: ClientFormData = {
   name: '',
   phone: '',
   email: '',
+  nationalId: '',
+  address: '',
   vehicleInterest: '',
   brand: '',
   model: '',
@@ -154,6 +156,25 @@ export const ClientModal: React.FC<ClientModalProps> = ({
             value={formData.email}
             onChange={handleChange}
             placeholder="ahmed@email.com"
+          />
+          <Input
+            label="رقم التعريف الوطني"
+            name="nationalId"
+            value={formData.nationalId || ''}
+            onChange={handleChange}
+            placeholder="000000000000000000"
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left' } as React.CSSProperties}
+          />
+        </div>
+
+        <div className="flex gap-md">
+          <Input
+            label="العنوان"
+            name="address"
+            value={formData.address || ''}
+            onChange={handleChange}
+            placeholder="المدينة / الحي"
           />
           <Input
             label="السيارة المطلوبة (ملخص)"
