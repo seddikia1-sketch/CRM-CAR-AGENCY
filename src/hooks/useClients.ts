@@ -114,6 +114,8 @@ export function useClients() {
         funnelStage: data.funnelStage || FunnelStage.FIRST_CONTACT,
         source: data.source || ('whatsapp' as LeadSource),
         notes: data.notes || '',
+        nationalId: data.nationalId?.trim() || '',
+        address: data.address?.trim() || '',
         createdAt: now,
         updatedAt: now,
         lastContactAt: now,
